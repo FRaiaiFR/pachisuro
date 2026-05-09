@@ -7,193 +7,172 @@
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Oswald:wght@400;600&display=swap');
 
-  :root, [data-theme="dark"] {
-    --bg:#0e0e12; --surface:#18181f; --surface2:#22222c;
-    --border:rgba(255,255,255,0.07); --border2:rgba(255,255,255,0.13);
-    --accent:#e8b84b; --win:#3ecf8e; --lose:#f06a6a;
-    --text:#f0f0f0; --text2:#909098; --text3:#55555f; --radius:12px;
+  :root,[data-theme="dark"]{
+    --bg:#0e0e12;--surface:#18181f;--surface2:#22222c;
+    --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);
+    --accent:#e8b84b;--win:#3ecf8e;--lose:#f06a6a;
+    --text:#f0f0f0;--text2:#909098;--text3:#55555f;--radius:12px;
     --arrow:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23909098' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
   }
-  [data-theme="light"] {
-    --bg:#f2f3f7; --surface:#ffffff; --surface2:#eeeef4;
-    --border:rgba(0,0,0,0.07); --border2:rgba(0,0,0,0.13);
-    --accent:#b8820a; --win:#1a9e68; --lose:#d03c3c;
-    --text:#1a1a24; --text2:#66666e; --text3:#aaaabc;
+  [data-theme="light"]{
+    --bg:#f2f3f7;--surface:#ffffff;--surface2:#eeeef4;
+    --border:rgba(0,0,0,0.07);--border2:rgba(0,0,0,0.13);
+    --accent:#b8820a;--win:#1a9e68;--lose:#d03c3c;
+    --text:#1a1a24;--text2:#66666e;--text3:#aaaabc;
     --arrow:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2366666e' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
   }
 
   *{box-sizing:border-box;margin:0;padding:0;}
   html,body{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;height:100%;overflow:hidden;}
   input,select{-webkit-user-select:auto;user-select:auto;}
-  body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text);height:100dvh;overscroll-behavior:none;transition:background .25s,color .25s;display:flex;flex-direction:column;align-items:center;}
-  #app{max-width:480px;width:100%;height:100dvh;display:flex;flex-direction:column;overflow:hidden;}
+  body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text);height:100dvh;overscroll-behavior:none;transition:background .25s,color .25s;display:flex;justify-content:center;}
+  #app{width:100%;max-width:480px;height:100dvh;display:flex;flex-direction:column;overflow:hidden;}
 
   /* ── Header ── */
-  .header{position:sticky;top:0;z-index:100;background:var(--bg);border-bottom:1px solid var(--border);padding:12px 16px 10px;transition:background .25s;}
+  .header{background:var(--bg);border-bottom:1px solid var(--border);padding:12px 14px 0;flex-shrink:0;transition:background .25s;}
   .header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
-  .header-left{display:flex;align-items:center;gap:10px;}
+  .header-left{display:flex;align-items:center;gap:8px;}
   .app-title{font-family:'Oswald',sans-serif;font-size:20px;letter-spacing:2px;color:var(--accent);}
   .header-right{display:flex;gap:6px;}
-  .icon-btn{width:34px;height:34px;border-radius:50%;border:1px solid var(--border2);background:var(--surface2);color:var(--text2);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;}
-  .month-pills{display:grid;grid-template-columns:repeat(6,1fr);gap:5px;}
-  .month-pill{background:var(--surface2);border:1px solid var(--border);color:var(--text2);border-radius:20px;padding:6px 0;font-size:12px;font-weight:500;font-family:'Noto Sans JP',sans-serif;cursor:pointer;text-align:center;transition:all .15s;}
-  .month-pill.active{background:var(--accent);border-color:var(--accent);color:#000;font-weight:700;}
-  .year-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+  .icon-btn{width:32px;height:32px;border-radius:50%;border:1px solid var(--border2);background:var(--surface2);color:var(--text2);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+
+  /* ── Tabs ── */
+  .tab-nav{display:flex;border-bottom:none;margin:0 -14px;}
+  .tab-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 0 7px;border:none;background:transparent;color:var(--text3);font-family:'Noto Sans JP',sans-serif;font-size:10px;gap:2px;cursor:pointer;border-bottom:2px solid transparent;transition:color .15s,border-color .15s;}
+  .tab-btn .icon{font-size:16px;}
+  .tab-btn.active{color:var(--accent);border-bottom-color:var(--accent);}
+
+  /* ── Home-only section (month + stats) ── */
+  .home-controls{flex-shrink:0;}
+
+  /* ── Year row ── */
+  .year-row{display:flex;align-items:center;justify-content:space-between;padding:10px 14px 6px;}
   .year-label{font-size:13px;font-weight:700;color:var(--text2);}
   .year-nav{display:flex;gap:6px;}
-  .year-nav button{background:var(--surface2);border:1px solid var(--border);color:var(--text2);width:28px;height:28px;border-radius:8px;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+  .year-nav button{background:var(--surface2);border:1px solid var(--border);color:var(--text2);width:26px;height:26px;border-radius:8px;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
 
-  /* ── Today Banner ── */
-  .today-banner{
-    display:none;align-items:center;gap:10px;
-    padding:10px 16px;background:var(--surface);
-    border-bottom:1px solid var(--border);
-    transition:background .25s;
-  }
-  .today-banner.show{display:flex;}
-  .tb-emoji{font-size:20px;}
-  .tb-text{flex:1;font-size:12px;color:var(--text2);}
-  .tb-text strong{color:var(--text);font-size:13px;}
-  .tb-amount{font-family:'Oswald',sans-serif;font-size:18px;font-weight:600;}
-  .tb-amount.win{color:var(--win);}
-  .tb-amount.lose{color:var(--lose);}
-  .tb-amount.zero{color:var(--text2);}
-
-  /* ── Stats Strips ── */
-  .stats-strip{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;border-bottom:1px solid var(--border);padding:9px 16px;transition:background .25s;}
-  .stats-strip.cum{background:var(--surface2);}
-  .stats-strip.monthly{background:var(--surface);}
-  .strip-row-label{font-size:8px;letter-spacing:1px;font-weight:700;text-transform:uppercase;color:var(--text3);padding:4px 16px 2px;background:var(--surface2);border-bottom:none;}
-  .strip-row-label.monthly-lbl{background:var(--surface);}
-  .s-card{text-align:center;padding:1px 0;}
-  .s-card .s-label{font-size:9px;color:var(--text3);margin-bottom:3px;}
-  .s-card .s-value{font-family:'Oswald',sans-serif;font-size:13px;font-weight:600;color:var(--text2);}
-  .stats-strip.monthly .s-card .s-value.win{color:var(--win);font-size:15px;}
-  .stats-strip.monthly .s-card .s-value.lose{color:var(--lose);font-size:15px;}
-  .stats-strip.monthly .s-card .s-value.neutral{color:var(--text);font-size:15px;}
+  /* ── Pill grid (shared by months and stats) ── */
+  .pill-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:5px;padding:0 14px;}
+  .pill-grid.three{grid-template-columns:repeat(3,1fr);}
+  .pill{background:var(--surface2);border:1px solid var(--border);color:var(--text2);border-radius:20px;padding:7px 4px;font-size:12px;font-weight:500;font-family:'Noto Sans JP',sans-serif;cursor:pointer;text-align:center;transition:all .15s;line-height:1.2;}
+  .pill.active{background:var(--accent);border-color:var(--accent);color:#000;font-weight:700;}
+  .pill.stat{cursor:default;padding:6px 4px;}
+  .pill.stat .pill-label{font-size:9px;color:var(--text3);margin-bottom:3px;}
+  .pill.stat .pill-val{font-family:'Oswald',sans-serif;font-size:13px;font-weight:600;color:var(--text2);}
+  .pill.stat .pill-val.win{color:var(--win);}
+  .pill.stat .pill-val.lose{color:var(--lose);}
+  .pill.stat .pill-val.neutral{color:var(--text);}
+  .stat-row-label{font-size:9px;color:var(--text3);letter-spacing:1px;font-weight:700;padding:6px 14px 3px;text-transform:uppercase;}
 
   /* ── Goal Bar ── */
-  .goal-bar-wrap{padding:8px 16px 6px;background:var(--surface);border-bottom:1px solid var(--border);}
-  .goal-bar-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;}
-  .goal-bar-label{font-size:10px;color:var(--text3);}
-  .goal-bar-info{font-size:10px;color:var(--text2);}
-  .goal-bar-track{height:6px;background:var(--surface2);border-radius:3px;overflow:hidden;}
-  .goal-bar-fill{height:100%;border-radius:3px;transition:width .4s;}
+  .goal-bar-wrap{padding:6px 14px 4px;display:none;}
+  .goal-bar-wrap.show{display:block;}
+  .goal-bar-top{display:flex;justify-content:space-between;margin-bottom:4px;}
+  .goal-bar-label{font-size:9px;color:var(--text3);}
+  .goal-bar-info{font-size:9px;color:var(--text2);}
+  .goal-bar-track{height:4px;background:var(--surface2);border-radius:2px;overflow:hidden;}
+  .goal-bar-fill{height:100%;border-radius:2px;transition:width .4s;}
   .goal-bar-fill.win{background:var(--win);}
   .goal-bar-fill.lose{background:var(--lose);}
 
+  /* ── Today Banner ── */
+  .today-banner{display:none;align-items:center;gap:8px;padding:6px 14px;background:var(--surface);border-top:1px solid var(--border);border-bottom:1px solid var(--border);}
+  .today-banner.show{display:flex;}
+  .tb-text{flex:1;font-size:11px;color:var(--text2);}
+  .tb-text strong{color:var(--text);}
+  .tb-amount{font-family:'Oswald',sans-serif;font-size:16px;font-weight:600;}
+  .tb-amount.win{color:var(--win);}
+  .tb-amount.lose{color:var(--lose);}
+
   /* ── Calendar ── */
-  .calendar{padding:0 12px 8px;flex:1;display:flex;flex-direction:column;min-height:0;}
-  .cal-header{display:grid;grid-template-columns:repeat(7,1fr);text-align:center;margin-bottom:4px;flex-shrink:0;}
-  .cal-header span{font-size:11px;color:var(--text3);padding:3px 0;font-weight:500;}
+  .cal-section{flex:1;overflow:hidden;display:flex;flex-direction:column;min-height:0;margin:8px 14px;border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);}
+  .cal-header{display:grid;grid-template-columns:repeat(7,1fr);text-align:center;border-bottom:1px solid var(--border);flex-shrink:0;}
+  .cal-header span{font-size:10px;color:var(--text3);padding:5px 0;font-weight:500;}
   .cal-header span:first-child{color:#f06a6a99;}
   .cal-header span:last-child{color:#6ab4f099;}
-  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;flex:1;min-height:0;}
-  .cal-day{background:var(--surface);border-radius:8px;border:1px solid var(--border);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:transform .1s,background .25s;padding:2px;position:relative;}
-  .cal-day.empty{background:transparent;border-color:transparent;cursor:default;}
-  .cal-day.today{border-color:var(--accent)!important;}
-  .cal-day:not(.empty):active{transform:scale(0.93);}
-  .cal-day .day-num{font-size:12px;font-weight:500;color:var(--text2);line-height:1;}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);flex:1;min-height:0;}
+  .cal-day{background:transparent;border-right:1px solid var(--border);border-bottom:1px solid var(--border);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;padding:3px 2px;transition:background .1s;position:relative;}
+  .cal-day:nth-child(7n){border-right:none;}
+  .cal-day.empty{cursor:default;}
+  .cal-day:not(.empty):active{background:var(--surface2);}
+  .cal-day .day-num{font-size:11px;font-weight:500;color:var(--text2);line-height:1;}
   .cal-day.sun .day-num{color:#f06a6a99;}
   .cal-day.sat .day-num{color:#6ab4f099;}
   .cal-day.has-data .day-num{color:var(--text);font-weight:700;}
-  .cal-day.today .day-num{color:var(--accent)!important;font-weight:700;}
-  .cal-day .day-val{font-family:'Oswald',sans-serif;font-size:10px;font-weight:600;margin-top:1px;line-height:1;}
+  .cal-day.today .day-num{width:20px;height:20px;background:var(--accent);color:#000;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;}
+  .cal-day .day-val{font-family:'Oswald',sans-serif;font-size:9px;font-weight:600;margin-top:1px;line-height:1;}
   .cal-day .day-val.win{color:var(--win);}
   .cal-day .day-val.lose{color:var(--lose);}
-  .cal-day.win-bg{background:rgba(62,207,142,0.12);border-color:rgba(62,207,142,0.3);}
-  .cal-day.lose-bg{background:rgba(240,106,106,0.12);border-color:rgba(240,106,106,0.3);}
-  .cal-day .day-dot{width:4px;height:4px;border-radius:50%;background:var(--accent);position:absolute;bottom:3px;right:4px;}
+  .cal-day.win-bg{background:rgba(62,207,142,0.1);border-color:rgba(62,207,142,0.2);}
+  .cal-day.lose-bg{background:rgba(240,106,106,0.1);border-color:rgba(240,106,106,0.2);}
+  .cal-day .day-dot{width:3px;height:3px;border-radius:50%;background:var(--accent);position:absolute;bottom:2px;right:3px;}
 
-  /* ── Tab Nav (top) ── */
-  .tab-nav{display:flex;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;transition:background .25s;}
-  .tab-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 0 6px;border:none;background:transparent;color:var(--text3);font-family:'Noto Sans JP',sans-serif;font-size:10px;gap:2px;cursor:pointer;border-bottom:2px solid transparent;transition:color .15s,border-color .15s;}
-  .tab-btn.active{color:var(--accent);border-bottom-color:var(--accent);}
-  .tab-btn .icon{font-size:18px;}
+  /* ── Pages ── */
+  .page{display:none;flex:1;overflow-y:auto;padding:12px 14px 80px;}
+  .page.active{display:block;}
+  .section-title{font-size:11px;color:var(--text2);letter-spacing:1px;font-weight:600;text-transform:uppercase;margin:14px 0 8px;}
+  .chart-wrap{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);padding:14px;margin-bottom:10px;}
+  .chart-bars{display:flex;gap:5px;align-items:flex-end;min-height:100px;}
+  .chart-bar-wrap{display:flex;flex-direction:column;align-items:center;gap:3px;flex:1;}
+  .chart-bar-inner{width:100%;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:90px;}
+  .bar-fill{width:80%;border-radius:4px 4px 0 0;min-height:2px;}
+  .bar-fill.win{background:var(--win);}
+  .bar-fill.lose{background:var(--lose);}
+  .bar-label{font-size:9px;color:var(--text3);}
+  .bar-val{font-size:9px;font-family:'Oswald',sans-serif;color:var(--text2);}
+  .line-chart-wrap{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);padding:14px;margin-bottom:10px;}
+  .line-chart-wrap svg{width:100%;height:100px;overflow:visible;}
+  .rank-list{display:flex;flex-direction:column;gap:8px;}
+  .rank-item{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);padding:11px 13px;display:flex;align-items:center;gap:10px;}
+  .rank-item.clickable{cursor:pointer;}
+  .rank-num{font-family:'Oswald',sans-serif;font-size:20px;color:var(--text3);width:26px;flex-shrink:0;}
+  .rank-info{flex:1;min-width:0;}
+  .rank-name{font-size:13px;font-weight:700;}
+  .rank-sub{font-size:11px;color:var(--text2);margin-top:2px;}
+  .rank-val{font-family:'Oswald',sans-serif;font-size:17px;font-weight:600;flex-shrink:0;}
+  .rank-val.win{color:var(--win);}
+  .rank-val.lose{color:var(--lose);}
+  .rank-chevron{color:var(--text3);font-size:16px;}
+  .winrate-badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:12px;margin-left:5px;}
+  .winrate-badge.win{background:rgba(62,207,142,0.15);color:var(--win);}
+  .winrate-badge.lose{background:rgba(240,106,106,0.15);color:var(--lose);}
 
   /* ── FAB ── */
-  .fab{position:fixed;bottom:calc(16px + env(safe-area-inset-bottom,0px));right:50%;transform:translateX(calc(50% + 140px));width:48px;height:48px;border-radius:50%;background:var(--accent);border:none;color:#000;font-size:24px;cursor:pointer;box-shadow:0 4px 16px rgba(232,184,75,0.4);display:flex;align-items:center;justify-content:center;z-index:150;}
+  .fab{position:fixed;bottom:20px;right:50%;transform:translateX(calc(50% + 136px));width:48px;height:48px;border-radius:50%;background:var(--accent);border:none;color:#000;font-size:24px;cursor:pointer;box-shadow:0 4px 16px rgba(232,184,75,0.4);display:flex;align-items:center;justify-content:center;z-index:150;}
   .fab:active{opacity:.85;}
 
   /* ── Sheet ── */
   .overlay{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,0);pointer-events:none;transition:background .25s;}
   .overlay.open{background:rgba(0,0,0,0.6);pointer-events:all;}
-  .sheet{position:fixed;bottom:-100%;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:var(--surface);border-radius:20px 20px 0 0;z-index:400;padding:0 16px calc(28px + env(safe-area-inset-bottom,0px));max-height:90vh;overflow-y:auto;transition:background .25s,bottom .3s cubic-bezier(.32,1,.32,1);}
+  .sheet{position:fixed;bottom:-100%;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:var(--surface);border-radius:20px 20px 0 0;z-index:400;padding:0 16px calc(28px + env(safe-area-inset-bottom,0px));max-height:92vh;overflow-y:auto;transition:background .25s,bottom .3s cubic-bezier(.32,1,.32,1);}
   .sheet.open{bottom:0;}
   .sheet-handle{width:36px;height:4px;border-radius:2px;background:var(--border2);margin:12px auto 16px;}
   .sheet-title{font-size:16px;font-weight:700;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;}
   .sheet-close{background:var(--surface2);border:none;color:var(--text2);width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;}
-
-  /* ── Form ── */
   .form-row{margin-bottom:14px;}
   .form-row label{display:block;font-size:11px;color:var(--text2);margin-bottom:5px;}
-  .form-row input,.form-row select{width:100%;background:var(--surface2);border:1px solid var(--border2);color:var(--text);border-radius:10px;padding:11px 14px;font-size:15px;font-family:'Noto Sans JP',sans-serif;outline:none;-webkit-appearance:none;appearance:none;transition:border-color .15s,background .25s;}
+  .form-row input,.form-row select{width:100%;background:var(--surface2);border:1px solid var(--border2);color:var(--text);border-radius:10px;padding:11px 14px;font-size:15px;font-family:'Noto Sans JP',sans-serif;outline:none;-webkit-appearance:none;appearance:none;transition:border-color .15s;}
   .form-row select{background-image:var(--arrow);background-repeat:no-repeat;background-position:right 14px center;padding-right:36px;}
   .form-row input:focus,.form-row select:focus{border-color:var(--accent);}
   .form-row.two{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-  .form-row.three{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
   .btn-primary{width:100%;padding:14px;border-radius:12px;background:var(--accent);border:none;color:#000;font-size:15px;font-weight:700;cursor:pointer;font-family:'Noto Sans JP',sans-serif;}
   .btn-primary:active{opacity:.8;}
-
-  /* ── Record Card ── */
   .record-list{display:flex;flex-direction:column;gap:10px;margin-bottom:16px;}
-  .record-card{background:var(--surface2);border-radius:var(--radius);padding:12px 14px;border:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start;transition:background .25s;}
+  .record-card{background:var(--surface2);border-radius:var(--radius);padding:12px 14px;border:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start;}
   .rc-left{flex:1;}
   .rc-shop{font-size:13px;font-weight:700;margin-bottom:2px;}
   .rc-machine{font-size:12px;color:var(--text2);}
-  .rc-seat{font-size:11px;color:var(--text3);margin-top:2px;}
   .rc-memo{font-size:11px;color:var(--text3);margin-top:3px;}
   .rc-right{text-align:right;}
   .rc-amount{font-family:'Oswald',sans-serif;font-size:20px;font-weight:600;}
   .rc-amount.win{color:var(--win);}
   .rc-amount.lose{color:var(--lose);}
   .rc-sub{font-size:10px;color:var(--text3);margin-top:2px;}
-  .rc-del{background:none;border:none;color:var(--text3);font-size:16px;cursor:pointer;margin-left:10px;padding:4px;border-radius:6px;}
-
+  .rc-del{background:none;border:none;color:var(--text3);font-size:16px;cursor:pointer;margin-left:10px;padding:4px;}
   .empty-state{text-align:center;padding:32px 0;color:var(--text3);font-size:13px;}
   .empty-state .emo{font-size:36px;margin-bottom:8px;}
-
-  /* ── Analysis ── */
-  .page{display:none;padding:12px 16px 72px;overflow-y:auto;flex:1;}
-  .page.active{display:block;}
-  #page-home{flex:1;overflow:hidden;display:flex;flex-direction:column;min-height:0;padding:0;}
-  .section-title{font-size:12px;color:var(--text2);letter-spacing:1px;margin:16px 0 10px;font-weight:500;text-transform:uppercase;}
-
-  /* win rate badge */
-  .winrate-badge{display:inline-block;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;margin-left:8px;vertical-align:middle;}
-  .winrate-badge.win{background:rgba(62,207,142,0.15);color:var(--win);}
-  .winrate-badge.lose{background:rgba(240,106,106,0.15);color:var(--lose);}
-
-  /* Bar chart */
-  .chart-wrap{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);padding:16px;transition:background .25s;margin-bottom:12px;}
-  .chart-bars{display:flex;gap:6px;align-items:flex-end;min-height:120px;}
-  .chart-bar-wrap{display:flex;flex-direction:column;align-items:center;gap:4px;flex:1;}
-  .chart-bar-inner{width:100%;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100px;}
-  .bar-fill{width:100%;border-radius:4px 4px 0 0;min-height:2px;}
-  .bar-fill.win{background:var(--win);}
-  .bar-fill.lose{background:var(--lose);}
-  .bar-label{font-size:9px;color:var(--text3);}
-  .bar-val{font-size:9px;font-family:'Oswald',sans-serif;color:var(--text2);}
-
-  /* Line chart */
-  .line-chart-wrap{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);padding:16px;transition:background .25s;}
-  .line-chart-wrap svg{width:100%;height:120px;overflow:visible;}
-
-  /* Rank */
-  .rank-list{display:flex;flex-direction:column;gap:8px;}
-  .rank-item{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);padding:12px 14px;display:flex;align-items:center;gap:12px;transition:background .25s;}
-  .rank-num{font-family:'Oswald',sans-serif;font-size:22px;color:var(--text3);width:24px;}
-  .rank-info{flex:1;}
-  .rank-name{font-size:13px;font-weight:700;}
-  .rank-sub{font-size:11px;color:var(--text2);margin-top:2px;}
-  .rank-val{font-family:'Oswald',sans-serif;font-size:18px;font-weight:600;}
-  .rank-val.win{color:var(--win);}
-  .rank-val.lose{color:var(--lose);}
-
-  /* Toast */
-  .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--surface2);color:var(--text);padding:10px 20px;border-radius:24px;font-size:13px;opacity:0;transition:all .3s;pointer-events:none;z-index:999;border:1px solid var(--border2);white-space:nowrap;}
+  .toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--surface2);color:var(--text);padding:10px 20px;border-radius:24px;font-size:13px;opacity:0;transition:all .3s;pointer-events:none;z-index:999;border:1px solid var(--border2);white-space:nowrap;}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
-
   ::-webkit-scrollbar{width:4px;}
   ::-webkit-scrollbar-track{background:transparent;}
   ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
@@ -201,6 +180,7 @@
 </head>
 <body>
 <div id="app">
+
   <!-- Header -->
   <div class="header">
     <div class="header-top">
@@ -208,10 +188,21 @@
         <div class="app-title">収支記録</div>
       </div>
       <div class="header-right">
-        <button class="icon-btn" onclick="openGoalSheet()" title="目標設定">🎯</button>
+        <button class="icon-btn" onclick="openGoalSheet()" title="目標">🎯</button>
         <button class="icon-btn" id="themeBtn" onclick="toggleTheme()">🌙</button>
       </div>
     </div>
+    <div class="tab-nav">
+      <button class="tab-btn active" id="tab-home" onclick="showPage('home')"><span class="icon">📅</span>収支</button>
+      <button class="tab-btn" id="tab-analysis" onclick="showPage('analysis')"><span class="icon">📊</span>分析</button>
+      <button class="tab-btn" id="tab-seat" onclick="showPage('seat')"><span class="icon">🎰</span>台別成績</button>
+      <button class="tab-btn" id="tab-other" onclick="showPage('other')"><span class="icon">⚙️</span>その他</button>
+    </div>
+  </div>
+
+  <!-- Home Controls (月選択 + 累計 + 今月) - 収支タブのみ表示 -->
+  <div class="home-controls" id="homeControls">
+    <!-- 年 -->
     <div class="year-row">
       <div class="year-label" id="yearLabel"></div>
       <div class="year-nav">
@@ -219,42 +210,63 @@
         <button onclick="changeYear(1)">›</button>
       </div>
     </div>
-    <div class="month-pills" id="monthPills"></div>
-  </div>
+    <!-- 月選択 -->
+    <div class="pill-grid" id="monthPills"></div>
 
-  <!-- Today Banner -->
-  <div class="today-banner" id="todayBanner">
-    <div class="tb-emoji">🎰</div>
-    <div class="tb-text"><strong>今日</strong>の結果</div>
-    <div class="tb-amount" id="todayAmount">¥0</div>
-  </div>
-
-  <!-- Cumulative -->
-  <div class="strip-row-label">累計</div>
-  <div class="stats-strip cum">
-    <div class="s-card"><div class="s-label">投資</div><div class="s-value" id="cumInvest">¥0</div></div>
-    <div class="s-card"><div class="s-label">回収</div><div class="s-value" id="cumReturn">¥0</div></div>
-    <div class="s-card"><div class="s-label">収支</div><div class="s-value" id="cumBalance">¥0</div></div>
-  </div>
-  <!-- Monthly -->
-  <div class="strip-row-label monthly-lbl">今月</div>
-  <div class="stats-strip monthly">
-    <div class="s-card"><div class="s-label">投資</div><div class="s-value neutral" id="sumInvest">¥0</div></div>
-    <div class="s-card"><div class="s-label">回収</div><div class="s-value neutral" id="sumReturn">¥0</div></div>
-    <div class="s-card"><div class="s-label">収支</div><div class="s-value neutral" id="sumBalance">¥0</div></div>
-  </div>
-  <!-- Goal Bar -->
-  <div class="goal-bar-wrap" id="goalBarWrap" style="display:none">
-    <div class="goal-bar-top">
-      <div class="goal-bar-label">今月の目標</div>
-      <div class="goal-bar-info" id="goalBarInfo"></div>
+    <!-- 累計 -->
+    <div class="stat-row-label">累計</div>
+    <div class="pill-grid three">
+      <div class="pill stat">
+        <div class="pill-label">投資</div>
+        <div class="pill-val" id="cumInvest">¥0</div>
+      </div>
+      <div class="pill stat">
+        <div class="pill-label">回収</div>
+        <div class="pill-val" id="cumReturn">¥0</div>
+      </div>
+      <div class="pill stat">
+        <div class="pill-label">収支</div>
+        <div class="pill-val" id="cumBalance">¥0</div>
+      </div>
     </div>
-    <div class="goal-bar-track"><div class="goal-bar-fill" id="goalBarFill" style="width:0%"></div></div>
+
+    <!-- 今月 -->
+    <div class="stat-row-label">今月</div>
+    <div class="pill-grid three">
+      <div class="pill stat">
+        <div class="pill-label">投資</div>
+        <div class="pill-val" id="sumInvest">¥0</div>
+      </div>
+      <div class="pill stat">
+        <div class="pill-label">回収</div>
+        <div class="pill-val" id="sumReturn">¥0</div>
+      </div>
+      <div class="pill stat">
+        <div class="pill-label">収支</div>
+        <div class="pill-val neutral" id="sumBalance">¥0</div>
+      </div>
+    </div>
+
+    <!-- 目標ゲージ -->
+    <div class="goal-bar-wrap" id="goalBarWrap">
+      <div class="goal-bar-top">
+        <div class="goal-bar-label">今月の目標</div>
+        <div class="goal-bar-info" id="goalBarInfo"></div>
+      </div>
+      <div class="goal-bar-track"><div class="goal-bar-fill" id="goalBarFill" style="width:0%"></div></div>
+    </div>
+
+    <!-- 今日バナー -->
+    <div class="today-banner" id="todayBanner">
+      <span>🎰</span>
+      <div class="tb-text"><strong>今日</strong>の収支</div>
+      <div class="tb-amount" id="todayAmount">¥0</div>
+    </div>
   </div>
 
-  <!-- Calendar Page -->
-  <div id="page-home">
-    <div class="calendar">
+  <!-- Calendar (収支タブ) -->
+  <div id="page-home" style="flex:1;overflow:hidden;display:flex;flex-direction:column;min-height:0;">
+    <div class="cal-section">
       <div class="cal-header">
         <span>日</span><span>月</span><span>火</span><span>水</span><span>木</span><span>金</span><span>土</span>
       </div>
@@ -262,45 +274,45 @@
     </div>
   </div>
 
-  <!-- Analysis Page -->
-  <div class="page" id="page-analysis" style="">
+  <!-- 分析 -->
+  <div class="page" id="page-analysis">
     <div class="section-title">月別収支（棒グラフ）</div>
     <div class="chart-wrap"><div class="chart-bars" id="chartBars"></div></div>
     <div class="section-title">累計収支（折れ線）</div>
     <div class="line-chart-wrap"><svg id="lineChart"></svg></div>
-    <div class="section-title" id="shopTitle">店舗別成績</div>
+    <div class="section-title">店舗別成績</div>
     <div class="rank-list" id="shopRank"></div>
   </div>
 
-  <!-- Seat/Machine Page -->
+  <!-- 台別成績 -->
   <div class="page" id="page-seat">
     <div class="section-title" id="machineTitle">機種別成績</div>
     <div class="rank-list" id="machineRank"></div>
   </div>
 
-  <!-- Other Page -->
+  <!-- その他 -->
   <div class="page" id="page-other">
     <div class="section-title">設定</div>
     <div class="rank-list">
-      <div class="rank-item" style="cursor:pointer" onclick="openGoalSheet()">
+      <div class="rank-item clickable" onclick="openGoalSheet()">
         <div class="rank-num">🎯</div>
         <div class="rank-info"><div class="rank-name">今月の目標収支</div><div class="rank-sub" id="otherGoalSub">未設定</div></div>
-        <div style="color:var(--text3);font-size:18px">›</div>
+        <div class="rank-chevron">›</div>
       </div>
-      <div class="rank-item" style="cursor:pointer" onclick="toggleTheme()">
+      <div class="rank-item clickable" onclick="toggleTheme()">
         <div class="rank-num" id="otherThemeIcon">🌙</div>
         <div class="rank-info"><div class="rank-name">テーマ切替</div><div class="rank-sub">ライト / ダーク</div></div>
-        <div style="color:var(--text3);font-size:18px">›</div>
+        <div class="rank-chevron">›</div>
       </div>
     </div>
-    <div class="section-title" style="margin-top:24px">データ</div>
+    <div class="section-title" style="margin-top:20px">データ</div>
     <div class="rank-list">
-      <div class="rank-item">
-        <div class="rank-num">📋</div>
-        <div class="rank-info"><div class="rank-name">総記録数</div><div class="rank-sub" id="otherTotal">0件</div></div>
-      </div>
+      <div class="rank-item"><div class="rank-num">📋</div><div class="rank-info"><div class="rank-name">総記録数</div><div class="rank-sub" id="otherTotal">0件</div></div></div>
+      <div class="rank-item"><div class="rank-num">💰</div><div class="rank-info"><div class="rank-name">累計投資</div><div class="rank-sub" id="otherCumI">¥0</div></div></div>
+      <div class="rank-item"><div class="rank-num">📈</div><div class="rank-info"><div class="rank-name">累計収支</div><div class="rank-sub" id="otherCumB">¥0</div></div></div>
     </div>
   </div>
+
 </div>
 
 <button class="fab" onclick="openAddSheet()">＋</button>
@@ -354,10 +366,7 @@
 <div class="sheet" id="goalSheet">
   <div class="sheet-handle"></div>
   <div class="sheet-title"><span>今月の目標収支</span><button class="sheet-close" onclick="closeGoalSheet()">✕</button></div>
-  <div class="form-row">
-    <label>目標収支（円）</label>
-    <input type="number" id="fGoal" placeholder="例：30000" step="1000">
-  </div>
+  <div class="form-row"><label>目標収支（円）</label><input type="number" id="fGoal" placeholder="例：30000" step="1000"></div>
   <button class="btn-primary" onclick="saveGoal()">設定する</button>
 </div>
 
@@ -366,233 +375,220 @@
 <script>
 document.addEventListener('contextmenu', e => e.preventDefault());
 
-let records = JSON.parse(localStorage.getItem('pachisuro_records') || '[]');
-let curYear = new Date().getFullYear();
-let curMonth = new Date().getMonth() + 1;
+let records   = JSON.parse(localStorage.getItem('pachisuro_records') || '[]');
+let curYear   = new Date().getFullYear();
+let curMonth  = new Date().getMonth() + 1;
 let selectedDay = null;
-let editId = null;
-let theme = localStorage.getItem('pachisuro_theme') || 'dark';
+let editId    = null;
+let theme     = localStorage.getItem('pachisuro_theme') || 'dark';
 let monthGoal = parseInt(localStorage.getItem('pachisuro_goal') || '0');
 
 function applyTheme() {
   document.documentElement.setAttribute('data-theme', theme);
-  document.getElementById('themeBtn').textContent = theme === 'dark' ? '🌙' : '☀️';
+  document.getElementById('themeBtn').textContent = theme==='dark'?'🌙':'☀️';
 }
 function toggleTheme() {
-  theme = theme === 'dark' ? 'light' : 'dark';
+  theme = theme==='dark'?'light':'dark';
   localStorage.setItem('pachisuro_theme', theme);
   applyTheme();
 }
 applyTheme();
 
-function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
+function uid() { return Date.now().toString(36)+Math.random().toString(36).slice(2); }
 function save() { localStorage.setItem('pachisuro_records', JSON.stringify(records)); }
 function showToast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg; t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2000);
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2200);
 }
 
+// ── Tab switching ──
 function showPage(p) {
-  ['home','analysis','seat','other'].forEach(id => {
-    const el = document.getElementById('page-'+id);
-    if (el) el.className = 'page' + (id===p?' active':'');
-    const tab = document.getElementById('tab-'+id);
-    if (tab) tab.className = 'tab-btn' + (id===p?' active':'');
+  ['home','analysis','seat','other'].forEach(id=>{
+    const tb=document.getElementById('tab-'+id);
+    if(tb) tb.className='tab-btn'+(id===p?' active':'');
   });
-  document.getElementById('page-home').style.display = p==='home' ? 'flex' : 'none';
-  if (p==='home') document.getElementById('page-home').style.flexDirection='column';
-  if (p==='analysis'||p==='seat') renderAnalysis();
-  if (p==='other') renderOther();
+  // home controls (月選択・累計・今月) は収支タブのみ
+  document.getElementById('homeControls').style.display = p==='home'?'':'none';
+  // pages
+  const home=document.getElementById('page-home');
+  home.style.display = p==='home'?'flex':'none';
+  ['analysis','seat','other'].forEach(id=>{
+    const el=document.getElementById('page-'+id);
+    if(el) el.className='page'+(id===p?' active':'');
+  });
+  if(p==='analysis'||p==='seat') renderAnalysis();
+  if(p==='other') renderOther();
 }
 
-function changeYear(d) { curYear += d; render(); }
-function selectMonth(m) { curMonth = m; render(); }
+function changeYear(d) { curYear+=d; render(); }
+function selectMonth(m) { curMonth=m; render(); }
 
 function render() {
-  document.getElementById('yearLabel').textContent = `${curYear}年`;
+  document.getElementById('yearLabel').textContent=`${curYear}年`;
 
   // Month pills
-  const pills = document.getElementById('monthPills');
-  pills.innerHTML = '';
-  for (let m = 1; m <= 12; m++) {
-    const btn = document.createElement('button');
-    btn.className = 'month-pill' + (m === curMonth ? ' active' : '');
-    btn.textContent = m + '月';
-    btn.onclick = () => selectMonth(m);
+  const pills=document.getElementById('monthPills');
+  pills.innerHTML='';
+  for(let m=1;m<=12;m++){
+    const btn=document.createElement('button');
+    btn.className='pill'+(m===curMonth?' active':'');
+    btn.textContent=m+'月';
+    btn.onclick=()=>selectMonth(m);
     pills.appendChild(btn);
   }
 
-  const monthRecs = records.filter(r => {
-    const d = new Date(r.date);
-    return d.getFullYear()===curYear && d.getMonth()+1===curMonth;
+  const monthRecs=records.filter(r=>{
+    const d=new Date(r.date);
+    return d.getFullYear()===curYear&&d.getMonth()+1===curMonth;
   });
-  const invest = monthRecs.reduce((s,r)=>s+r.invest, 0);
-  const ret    = monthRecs.reduce((s,r)=>s+r.ret, 0);
-  const bal    = ret - invest;
+  const invest=monthRecs.reduce((s,r)=>s+r.invest,0);
+  const ret=monthRecs.reduce((s,r)=>s+r.ret,0);
+  const bal=ret-invest;
 
-  // Cumulative
-  const cumI = records.reduce((s,r)=>s+r.invest, 0);
-  const cumR = records.reduce((s,r)=>s+r.ret, 0);
-  const cumB = cumR - cumI;
-  document.getElementById('cumInvest').textContent = '¥'+cumI.toLocaleString();
-  document.getElementById('cumReturn').textContent = '¥'+cumR.toLocaleString();
-  const cumBEl = document.getElementById('cumBalance');
-  cumBEl.textContent = (cumB>=0?'+':'')+cumB.toLocaleString()+'円';
-  cumBEl.className = 's-value '+(cumB>0?'win':cumB<0?'lose':'');
+  // 累計
+  const cumI=records.reduce((s,r)=>s+r.invest,0);
+  const cumR=records.reduce((s,r)=>s+r.ret,0);
+  const cumB=cumR-cumI;
+  document.getElementById('cumInvest').textContent='¥'+cumI.toLocaleString();
+  document.getElementById('cumReturn').textContent='¥'+cumR.toLocaleString();
+  const cumBEl=document.getElementById('cumBalance');
+  cumBEl.textContent=(cumB>=0?'+':'')+cumB.toLocaleString()+'円';
+  cumBEl.className='pill-val '+(cumB>0?'win':cumB<0?'lose':'');
 
-  // Monthly
-  document.getElementById('sumInvest').textContent = '¥'+invest.toLocaleString();
-  document.getElementById('sumReturn').textContent = '¥'+ret.toLocaleString();
-  const balEl = document.getElementById('sumBalance');
-  balEl.textContent = (bal>=0?'+':'')+bal.toLocaleString()+'円';
-  balEl.className = 's-value '+(bal>0?'win':bal<0?'lose':'neutral');
+  // 今月
+  document.getElementById('sumInvest').textContent='¥'+invest.toLocaleString();
+  document.getElementById('sumReturn').textContent='¥'+ret.toLocaleString();
+  const balEl=document.getElementById('sumBalance');
+  balEl.textContent=(bal>=0?'+':'')+bal.toLocaleString()+'円';
+  balEl.className='pill-val '+(bal>0?'win':bal<0?'lose':'neutral');
 
-  // Goal bar
-  const goalWrap = document.getElementById('goalBarWrap');
-  if (monthGoal > 0) {
-    goalWrap.style.display = '';
-    const pct = Math.min(Math.max(bal / monthGoal * 100, 0), 100);
-    const fill = document.getElementById('goalBarFill');
-    fill.style.width = pct.toFixed(1) + '%';
-    fill.className = 'goal-bar-fill ' + (bal >= 0 ? 'win' : 'lose');
-    const remain = monthGoal - bal;
-    document.getElementById('goalBarInfo').textContent =
-      bal >= monthGoal
-        ? `🎉 目標達成！`
-        : `目標まであと ${remain.toLocaleString()}円 (${pct.toFixed(0)}%)`;
-  } else {
-    goalWrap.style.display = 'none';
-  }
+  // 目標
+  const gbw=document.getElementById('goalBarWrap');
+  if(monthGoal>0){
+    gbw.classList.add('show');
+    const pct=Math.min(Math.max(bal/monthGoal*100,0),100);
+    const fill=document.getElementById('goalBarFill');
+    fill.style.width=pct.toFixed(1)+'%';
+    fill.className='goal-bar-fill '+(bal>=0?'win':'lose');
+    document.getElementById('goalBarInfo').textContent=
+      bal>=monthGoal?'🎉 目標達成！':`あと${(monthGoal-bal).toLocaleString()}円(${pct.toFixed(0)}%)`;
+  } else { gbw.classList.remove('show'); }
 
-  // Today banner
-  const todayDate = new Date();
-  const isCurrentMonth = todayDate.getFullYear()===curYear && todayDate.getMonth()+1===curMonth;
-  const banner = document.getElementById('todayBanner');
-  if (isCurrentMonth) {
-    const todayRecs = records.filter(r => {
-      const d = new Date(r.date);
-      return d.getFullYear()===todayDate.getFullYear() && d.getMonth()===todayDate.getMonth() && d.getDate()===todayDate.getDate();
+  // 今日バナー
+  const today=new Date();
+  const isCur=today.getFullYear()===curYear&&today.getMonth()+1===curMonth;
+  const banner=document.getElementById('todayBanner');
+  if(isCur){
+    const tr=records.filter(r=>{
+      const d=new Date(r.date);
+      return d.getFullYear()===today.getFullYear()&&d.getMonth()===today.getMonth()&&d.getDate()===today.getDate();
     });
-    if (todayRecs.length > 0) {
-      const todayBal = todayRecs.reduce((s,r)=>s+r.ret-r.invest, 0);
+    if(tr.length>0){
+      const tb=tr.reduce((s,r)=>s+r.ret-r.invest,0);
       banner.classList.add('show');
-      const amtEl = document.getElementById('todayAmount');
-      amtEl.textContent = (todayBal>=0?'+':'')+todayBal.toLocaleString()+'円';
-      amtEl.className = 'tb-amount ' + (todayBal>0?'win':todayBal<0?'lose':'zero');
-    } else {
-      banner.classList.remove('show');
-    }
-  } else {
-    banner.classList.remove('show');
-  }
+      const ae=document.getElementById('todayAmount');
+      ae.textContent=(tb>=0?'+':'')+tb.toLocaleString()+'円';
+      ae.className='tb-amount '+(tb>0?'win':tb<0?'lose':'');
+    } else { banner.classList.remove('show'); }
+  } else { banner.classList.remove('show'); }
 
   renderCalendar(monthRecs);
 }
 
 function renderCalendar(monthRecs) {
-  const grid = document.getElementById('calGrid');
-  grid.innerHTML = '';
-  const today = new Date();
-  const first = new Date(curYear, curMonth-1, 1);
-  const lastDay = new Date(curYear, curMonth, 0).getDate();
-  const startDow = first.getDay();
-  const byDay = {};
-  monthRecs.forEach(r => {
-    const d = new Date(r.date).getDate();
-    if (!byDay[d]) byDay[d] = {invest:0, ret:0, count:0};
-    byDay[d].invest += r.invest; byDay[d].ret += r.ret; byDay[d].count++;
+  const grid=document.getElementById('calGrid');
+  grid.innerHTML='';
+  const today=new Date();
+  const first=new Date(curYear,curMonth-1,1);
+  const lastDay=new Date(curYear,curMonth,0).getDate();
+  const startDow=first.getDay();
+  const byDay={};
+  monthRecs.forEach(r=>{
+    const d=new Date(r.date).getDate();
+    if(!byDay[d])byDay[d]={invest:0,ret:0,count:0};
+    byDay[d].invest+=r.invest;byDay[d].ret+=r.ret;byDay[d].count++;
   });
-  for (let i=0; i<startDow; i++) {
-    const el = document.createElement('div'); el.className='cal-day empty'; grid.appendChild(el);
+  for(let i=0;i<startDow;i++){
+    const el=document.createElement('div');el.className='cal-day empty';grid.appendChild(el);
   }
-  for (let d=1; d<=lastDay; d++) {
-    const dow = (startDow+d-1)%7;
-    const isToday = today.getFullYear()===curYear && today.getMonth()+1===curMonth && today.getDate()===d;
-    const dd = byDay[d];
-    const bal = dd ? dd.ret - dd.invest : null;
-    let cls = 'cal-day';
-    if (dow===0) cls+=' sun';
-    if (dow===6) cls+=' sat';
-    if (isToday) cls+=' today';
-    if (dd) { cls+=' has-data'; cls+= bal>=0?' win-bg':' lose-bg'; }
-    const el = document.createElement('div');
-    el.className = cls;
-    el.innerHTML = `<div class="day-num">${d}</div>`;
-    if (dd) {
-      const vc = bal>=0?'win':'lose';
-      const sign = bal>=0?'+':'';
-      const disp = Math.abs(bal)>=1000 ? sign+(bal/1000).toFixed(0)+'K' : sign+bal.toLocaleString();
-      el.innerHTML += `<div class="day-val ${vc}">${disp}</div>`;
-      if (dd.count > 1) el.innerHTML += `<div class="day-dot"></div>`;
+  for(let d=1;d<=lastDay;d++){
+    const dow=(startDow+d-1)%7;
+    const isToday=today.getFullYear()===curYear&&today.getMonth()+1===curMonth&&today.getDate()===d;
+    const dd=byDay[d];
+    const bal=dd?dd.ret-dd.invest:null;
+    let cls='cal-day';
+    if(dow===0)cls+=' sun';
+    if(dow===6)cls+=' sat';
+    if(isToday)cls+=' today';
+    if(dd){cls+=' has-data';cls+=bal>=0?' win-bg':' lose-bg';}
+    const el=document.createElement('div');
+    el.className=cls;
+    el.innerHTML=`<div class="day-num">${d}</div>`;
+    if(dd){
+      const vc=bal>=0?'win':'lose';
+      const sign=bal>=0?'+':'';
+      const disp=Math.abs(bal)>=1000?sign+(bal/1000).toFixed(0)+'K':sign+bal.toLocaleString();
+      el.innerHTML+=`<div class="day-val ${vc}">${disp}</div>`;
+      if(dd.count>1)el.innerHTML+=`<div class="day-dot"></div>`;
     }
-    el.onclick = () => openDaySheet(d);
+    el.onclick=()=>openDaySheet(d);
     grid.appendChild(el);
   }
 }
 
-// ── Add Sheet ──
-function todayStr() {
-  const d = new Date();
+function todayStr(){
+  const d=new Date();
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
-function openAddSheet(date) {
-  editId = null;
-  document.getElementById('sheetTitle').textContent = '収支を追加';
-  document.getElementById('fDate').value = date || todayStr();
-  document.getElementById('fShop').value = '';
-  document.getElementById('fMachine').value = '';
-  document.getElementById('fSeat').value = '';
-  document.getElementById('fInvest').value = '';
-  document.getElementById('fReturn').value = '';
-  document.getElementById('fMemo').value = '';
+function openAddSheet(date){
+  editId=null;
+  document.getElementById('sheetTitle').textContent='収支を追加';
+  document.getElementById('fDate').value=date||todayStr();
+  ['fShop','fMachine','fSeat','fInvest','fReturn','fMemo'].forEach(id=>{document.getElementById(id).value='';});
   document.getElementById('addOverlay').classList.add('open');
   document.getElementById('addSheet').classList.add('open');
 }
-function closeAddSheet() {
+function closeAddSheet(){
   document.getElementById('addOverlay').classList.remove('open');
   document.getElementById('addSheet').classList.remove('open');
 }
-function saveRecord() {
-  const date    = document.getElementById('fDate').value;
-  const shop    = document.getElementById('fShop').value;
-  const machine = document.getElementById('fMachine').value;
-  const seat    = document.getElementById('fSeat').value.trim();
-  const invest  = parseInt(document.getElementById('fInvest').value)||0;
-  const ret     = parseInt(document.getElementById('fReturn').value)||0;
-  const memo    = document.getElementById('fMemo').value.trim();
-  if (!date)    { showToast('日付を入力してください'); return; }
-  if (!shop)    { showToast('店舗を選択してください'); return; }
-  if (!machine) { showToast('機種名を選択してください'); return; }
-  if (editId) {
-    const idx = records.findIndex(r=>r.id===editId);
-    if (idx>=0) records[idx] = {...records[idx], date, shop, machine, seat, invest, ret, memo};
+function saveRecord(){
+  const date=document.getElementById('fDate').value;
+  const shop=document.getElementById('fShop').value;
+  const machine=document.getElementById('fMachine').value;
+  const seat=document.getElementById('fSeat').value.trim();
+  const invest=parseInt(document.getElementById('fInvest').value)||0;
+  const ret=parseInt(document.getElementById('fReturn').value)||0;
+  const memo=document.getElementById('fMemo').value.trim();
+  if(!date){showToast('日付を入力してください');return;}
+  if(!shop){showToast('店舗を選択してください');return;}
+  if(!machine){showToast('機種名を選択してください');return;}
+  if(editId){
+    const idx=records.findIndex(r=>r.id===editId);
+    if(idx>=0)records[idx]={...records[idx],date,shop,machine,seat,invest,ret,memo};
   } else {
-    records.push({id:uid(), date, shop, machine, seat, invest, ret, memo, createdAt:new Date().toISOString()});
+    records.push({id:uid(),date,shop,machine,seat,invest,ret,memo,createdAt:new Date().toISOString()});
   }
-  save(); render(); closeAddSheet();
+  save();render();closeAddSheet();
   showToast(editId?'更新しました ✓':'追加しました ✓');
-  editId = null;
+  editId=null;
 }
 
-// ── Day Sheet ──
-function openDaySheet(day) {
-  selectedDay = day;
-  document.getElementById('daySheetTitle').textContent = `${curYear}年${curMonth}月${day}日`;
-  const dayRecs = records.filter(r=>{
-    const d=new Date(r.date);
-    return d.getFullYear()===curYear&&d.getMonth()+1===curMonth&&d.getDate()===day;
-  });
-  const list = document.getElementById('dayRecords');
-  if (!dayRecs.length) {
-    list.innerHTML = `<div class="empty-state"><div class="emo">🎰</div>記録がありません</div>`;
+function openDaySheet(day){
+  selectedDay=day;
+  document.getElementById('daySheetTitle').textContent=`${curYear}年${curMonth}月${day}日`;
+  const dayRecs=records.filter(r=>{const d=new Date(r.date);return d.getFullYear()===curYear&&d.getMonth()+1===curMonth&&d.getDate()===day;});
+  const list=document.getElementById('dayRecords');
+  if(!dayRecs.length){
+    list.innerHTML=`<div class="empty-state"><div class="emo">🎰</div>記録がありません</div>`;
   } else {
-    list.innerHTML = dayRecs.map(r=>{
-      const bal=r.ret-r.invest, cls=bal>=0?'win':'lose', sign=bal>=0?'+':'';
+    list.innerHTML=dayRecs.map(r=>{
+      const bal=r.ret-r.invest,cls=bal>=0?'win':'lose',sign=bal>=0?'+':'';
       return `<div class="record-card">
         <div class="rc-left">
           <div class="rc-shop">${r.shop}</div>
-          <div class="rc-machine">${r.machine}${r.seat?' <span style="color:var(--text3);font-size:11px">台'+r.seat+'番</span>':''}</div>
+          <div class="rc-machine">${r.machine}${r.seat?` <span style="color:var(--text3);font-size:11px">/ ${r.seat}番台</span>`:''}</div>
           ${r.memo?`<div class="rc-memo">${r.memo}</div>`:''}
         </div>
         <div class="rc-right">
@@ -606,123 +602,83 @@ function openDaySheet(day) {
   document.getElementById('dayOverlay').classList.add('open');
   document.getElementById('daySheet').classList.add('open');
 }
-function closeDaySheet() {
+function closeDaySheet(){
   document.getElementById('dayOverlay').classList.remove('open');
   document.getElementById('daySheet').classList.remove('open');
 }
-function openAddFromDay() {
+function openAddFromDay(){
   closeDaySheet();
-  const ds = `${curYear}-${String(curMonth).padStart(2,'0')}-${String(selectedDay).padStart(2,'0')}`;
-  setTimeout(()=>openAddSheet(ds), 100);
+  const ds=`${curYear}-${String(curMonth).padStart(2,'0')}-${String(selectedDay).padStart(2,'0')}`;
+  setTimeout(()=>openAddSheet(ds),100);
 }
-function deleteRecord(id) {
-  if (!confirm('この記録を削除しますか？')) return;
-  records = records.filter(r=>r.id!==id);
-  save(); render(); closeDaySheet(); showToast('削除しました');
+function deleteRecord(id){
+  if(!confirm('この記録を削除しますか？'))return;
+  records=records.filter(r=>r.id!==id);
+  save();render();closeDaySheet();showToast('削除しました');
 }
 
-// ── Goal Sheet ──
-function openGoalSheet() {
-  document.getElementById('fGoal').value = monthGoal || '';
+function openGoalSheet(){
+  document.getElementById('fGoal').value=monthGoal||'';
   document.getElementById('goalOverlay').classList.add('open');
   document.getElementById('goalSheet').classList.add('open');
 }
-function closeGoalSheet() {
+function closeGoalSheet(){
   document.getElementById('goalOverlay').classList.remove('open');
   document.getElementById('goalSheet').classList.remove('open');
 }
-function saveGoal() {
-  monthGoal = parseInt(document.getElementById('fGoal').value)||0;
-  localStorage.setItem('pachisuro_goal', monthGoal);
-  closeGoalSheet(); render();
+function saveGoal(){
+  monthGoal=parseInt(document.getElementById('fGoal').value)||0;
+  localStorage.setItem('pachisuro_goal',monthGoal);
+  closeGoalSheet();render();
   showToast(monthGoal>0?`目標 ${monthGoal.toLocaleString()}円 を設定しました`:'目標を解除しました');
 }
 
-// ── Analysis ──
-function renderAnalysis() {
-  // 直近6ヶ月
-  const months = [];
-  for (let i=5; i>=0; i--) {
-    let y=curYear, m=curMonth-i;
-    while(m<=0){m+=12;y--;}
-    months.push({y,m});
-  }
-  const mData = months.map(({y,m})=>{
-    const recs = records.filter(r=>{const d=new Date(r.date);return d.getFullYear()===y&&d.getMonth()+1===m;});
-    return {label:`${m}月`, balance:recs.reduce((s,r)=>s+r.ret-r.invest,0), count:recs.length, wins:recs.filter(r=>r.ret>r.invest).length};
+function renderAnalysis(){
+  const months=[];
+  for(let i=5;i>=0;i--){let y=curYear,m=curMonth-i;while(m<=0){m+=12;y--;}months.push({y,m});}
+  const mData=months.map(({y,m})=>{
+    const recs=records.filter(r=>{const d=new Date(r.date);return d.getFullYear()===y&&d.getMonth()+1===m;});
+    return{label:`${m}月`,balance:recs.reduce((s,r)=>s+r.ret-r.invest,0)};
   });
+  const mx=Math.max(...mData.map(d=>Math.abs(d.balance)),1000);
+  if(document.getElementById('chartBars'))
+    document.getElementById('chartBars').innerHTML=mData.map(d=>{
+      const h=Math.round(Math.abs(d.balance)/mx*100);
+      const cls=d.balance>=0?'win':'lose';
+      const val=d.balance!==0?(d.balance/1000).toFixed(0)+'K':'0';
+      return `<div class="chart-bar-wrap"><div class="bar-val">${val}</div><div class="chart-bar-inner"><div class="bar-fill ${cls}" style="height:${h}px"></div></div><div class="bar-label">${d.label}</div></div>`;
+    }).join('');
 
-  // Bar chart
-  const mx = Math.max(...mData.map(d=>Math.abs(d.balance)),1000);
-  document.getElementById('chartBars').innerHTML = mData.map(d=>{
-    const h=Math.round(Math.abs(d.balance)/mx*100);
-    const cls=d.balance>=0?'win':'lose';
-    const val=d.balance!==0?(d.balance/1000).toFixed(0)+'K':'0';
-    return `<div class="chart-bar-wrap"><div class="bar-val">${val}</div><div class="chart-bar-inner"><div class="bar-fill ${cls}" style="height:${h}px"></div></div><div class="bar-label">${d.label}</div></div>`;
-  }).join('');
-
-  // Line chart (cumulative balance)
-  const svg = document.getElementById('lineChart');
-  const W = svg.parentElement.clientWidth - 32;
-  const H = 100;
-  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
-  // Build cumulative by month (all records sorted)
-  const lineMonths = [];
-  for (let i=11; i>=0; i--) {
-    let y=curYear, m=curMonth-i;
-    while(m<=0){m+=12;y--;}
-    lineMonths.push({y,m});
+  const lc=document.getElementById('lineChart');
+  if(lc){
+    const lm=[];for(let i=11;i>=0;i--){let y=curYear,m=curMonth-i;while(m<=0){m+=12;y--;}lm.push({y,m});}
+    let cum=0;
+    const pts=lm.map(({y,m})=>{const r=records.filter(r=>{const d=new Date(r.date);return d.getFullYear()===y&&d.getMonth()+1===m;});cum+=r.reduce((s,r)=>s+r.ret-r.invest,0);return cum;});
+    const W=lc.parentElement.clientWidth-28,H=90;
+    lc.setAttribute('viewBox',`0 0 ${W} ${H}`);
+    const minV=Math.min(...pts,0),maxV=Math.max(...pts,0),range=maxV-minV||1000;
+    const toX=i=>(i/(lm.length-1))*(W-16)+8;
+    const toY=v=>H-8-((v-minV)/range)*(H-18);
+    const zY=toY(0);
+    const pd=pts.map((v,i)=>`${i===0?'M':'L'}${toX(i).toFixed(1)},${toY(v).toFixed(1)}`).join(' ');
+    const lc2=pts[pts.length-1]>=0?'var(--win)':'var(--lose)';
+    lc.innerHTML=`<line x1="8" y1="${zY.toFixed(1)}" x2="${(W-8).toFixed(1)}" y2="${zY.toFixed(1)}" stroke="var(--border2)" stroke-width="1" stroke-dasharray="3,3"/>
+      <path d="${pd}" fill="none" stroke="${lc2}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+      ${pts.map((v,i)=>`<circle cx="${toX(i).toFixed(1)}" cy="${toY(v).toFixed(1)}" r="2.5" fill="${lc2}"/>`).join('')}
+      ${lm.filter((_,i)=>i%3===0).map(({m},i)=>`<text x="${toX(i*3).toFixed(1)}" y="${H}" font-size="8" fill="var(--text3)" text-anchor="middle">${m}月</text>`).join('')}`;
   }
-  let cum = 0;
-  const points = lineMonths.map(({y,m},i)=>{
-    const recs = records.filter(r=>{const d=new Date(r.date);return d.getFullYear()===y&&d.getMonth()+1===m;});
-    cum += recs.reduce((s,r)=>s+r.ret-r.invest,0);
-    return cum;
-  });
-  const minV = Math.min(...points, 0);
-  const maxV = Math.max(...points, 0);
-  const range = maxV - minV || 1000;
-  const toX = i => (i/(lineMonths.length-1)) * (W-20) + 10;
-  const toY = v => H - 10 - ((v-minV)/range)*(H-20);
-  const zeroY = toY(0);
-  const pathD = points.map((v,i)=>`${i===0?'M':'L'}${toX(i).toFixed(1)},${toY(v).toFixed(1)}`).join(' ');
-  const isWin = points[points.length-1] >= 0;
-  const lineColor = isWin ? 'var(--win)' : 'var(--lose)';
-  svg.innerHTML = `
-    <line x1="10" y1="${zeroY.toFixed(1)}" x2="${(W-10).toFixed(1)}" y2="${zeroY.toFixed(1)}" stroke="var(--border2)" stroke-width="1" stroke-dasharray="3,3"/>
-    <path d="${pathD}" fill="none" stroke="${lineColor}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
-    ${points.map((v,i)=>`<circle cx="${toX(i).toFixed(1)}" cy="${toY(v).toFixed(1)}" r="3" fill="${lineColor}"/>`).join('')}
-    ${lineMonths.filter((_,i)=>i%2===0).map(({m},i)=>`<text x="${toX(i*2).toFixed(1)}" y="${H}" font-size="8" fill="var(--text3)" text-anchor="middle">${m}月</text>`).join('')}
-  `;
 
-  // Win rate
-  const totalGames = records.length;
-  const totalWins  = records.filter(r=>r.ret>r.invest).length;
-  const totalLoses = totalGames - totalWins;
-  const wr = totalGames > 0 ? (totalWins/totalGames*100).toFixed(1) : '--';
-  const wrCls = parseFloat(wr) >= 50 ? 'win' : 'lose';
-
-  // Machine rank with win rate
-  const mkRank = (map, el, titleEl) => {
-    const list = Object.entries(map).map(([name,d])=>({
-      name, balance:d.ret-d.invest, count:d.count, wins:d.wins
-    })).sort((a,b)=>b.balance-a.balance);
-    if (!list.length){el.innerHTML='<div style="color:var(--text3);font-size:13px;padding:12px">データがありません</div>';return;}
-    el.innerHTML = list.slice(0,5).map((r,i)=>{
-      const cls=r.balance>=0?'win':'lose', sign=r.balance>=0?'+':'';
-      const wr2=(r.wins/r.count*100).toFixed(0);
-      const wrc=parseInt(wr2)>=50?'win':'lose';
-      return `<div class="rank-item">
-        <div class="rank-num">${i+1}</div>
-        <div class="rank-info">
-          <div class="rank-name">${r.name}</div>
-          <div class="rank-sub">${r.count}回 / ${r.wins}勝${r.count-r.wins}敗 <span class="winrate-badge ${wrc}">${wr2}%</span></div>
-        </div>
-        <div class="rank-val ${cls}">${sign}${r.balance.toLocaleString()}</div>
-      </div>`;
+  const mkRank=(map,el)=>{
+    if(!el)return;
+    const list=Object.entries(map).map(([name,d])=>({name,balance:d.ret-d.invest,count:d.count,wins:d.wins})).sort((a,b)=>b.balance-a.balance);
+    if(!list.length){el.innerHTML='<div style="color:var(--text3);font-size:13px;padding:12px">データがありません</div>';return;}
+    el.innerHTML=list.slice(0,5).map((r,i)=>{
+      const cls=r.balance>=0?'win':'lose',sign=r.balance>=0?'+':'';
+      const wr=(r.wins/r.count*100).toFixed(0);
+      const wrc=parseInt(wr)>=50?'win':'lose';
+      return `<div class="rank-item"><div class="rank-num">${i+1}</div><div class="rank-info"><div class="rank-name">${r.name}</div><div class="rank-sub">${r.count}回 ${r.wins}勝${r.count-r.wins}敗<span class="winrate-badge ${wrc}">${wr}%</span></div></div><div class="rank-val ${cls}">${sign}${r.balance.toLocaleString()}</div></div>`;
     }).join('');
   };
-
   const mMap={},sMap={};
   records.forEach(r=>{
     if(!mMap[r.machine])mMap[r.machine]={invest:0,ret:0,count:0,wins:0};
@@ -732,16 +688,24 @@ function renderAnalysis() {
     sMap[r.shop].invest+=r.invest;sMap[r.shop].ret+=r.ret;sMap[r.shop].count++;
     if(r.ret>r.invest)sMap[r.shop].wins++;
   });
-  document.getElementById('machineTitle').innerHTML =
-    `機種別成績 <span class="winrate-badge ${wrCls}">${wr}%</span>`;
-  mkRank(mMap, document.getElementById('machineRank'));
-  mkRank(sMap, document.getElementById('shopRank'));
+  const tw=records.filter(r=>r.ret>r.invest).length;
+  const wr=records.length>0?(tw/records.length*100).toFixed(1):'--';
+  const wrc=parseFloat(wr)>=50?'win':'lose';
+  const mt=document.getElementById('machineTitle');
+  if(mt)mt.innerHTML=`機種別成績 <span class="winrate-badge ${wrc}">${wr}%</span>`;
+  mkRank(mMap,document.getElementById('machineRank'));
+  mkRank(sMap,document.getElementById('shopRank'));
 }
 
-function renderOther() {
-  document.getElementById('otherGoalSub').textContent = monthGoal > 0 ? monthGoal.toLocaleString()+'円' : '未設定';
-  document.getElementById('otherThemeIcon').textContent = theme==='dark'?'🌙':'☀️';
-  document.getElementById('otherTotal').textContent = records.length+'件';
+function renderOther(){
+  const cumI=records.reduce((s,r)=>s+r.invest,0);
+  const cumR=records.reduce((s,r)=>s+r.ret,0);
+  const cumB=cumR-cumI;
+  document.getElementById('otherGoalSub').textContent=monthGoal>0?monthGoal.toLocaleString()+'円':'未設定';
+  document.getElementById('otherThemeIcon').textContent=theme==='dark'?'🌙':'☀️';
+  document.getElementById('otherTotal').textContent=records.length+'件';
+  document.getElementById('otherCumI').textContent='¥'+cumI.toLocaleString();
+  document.getElementById('otherCumB').textContent=(cumB>=0?'+':'')+cumB.toLocaleString()+'円';
 }
 
 render();
