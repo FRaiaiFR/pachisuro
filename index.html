@@ -45,28 +45,24 @@
   /* Home controls */
   .home-controls{flex-shrink:0;background:var(--surface);border-bottom:1px solid var(--border);transition:background .25s;}
 
-  /* Year row */
-  .year-row{display:flex;align-items:center;justify-content:space-between;padding:10px 14px 6px;}
-  .year-label{font-size:13px;font-weight:700;color:var(--text2);}
-  .year-nav{display:flex;gap:6px;}
-  .year-nav button{background:var(--surface2);border:1px solid var(--border);color:var(--text2);width:26px;height:26px;border-radius:8px;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+  /* Year inline in header */
+  .year-inline{font-size:13px;font-weight:600;color:var(--text2);margin-left:4px;}
+  .year-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text2);width:24px;height:24px;border-radius:7px;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
 
   /* Month pills - 1 row, all 12 fit */
   .month-row{display:grid;grid-template-columns:repeat(12,1fr);gap:3px;padding:0 14px 10px;}
   .m-pill{background:var(--surface2);border:1px solid var(--border);color:var(--text2);border-radius:20px;padding:7px 0;font-size:11px;font-weight:500;font-family:'Noto Sans JP',sans-serif;cursor:pointer;text-align:center;transition:all .15s;}
   .m-pill.active{background:var(--accent);border-color:var(--accent);color:#000;font-weight:700;}
 
-  /* Stats pills - same size as month pills */
-  .stat-row-label{font-size:9px;color:var(--text3);letter-spacing:1px;font-weight:700;padding:6px 14px 3px;text-transform:uppercase;}
-  .stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:3px;padding:0 14px 10px;}
+  /* Stats 2×3 grid - same size as month pills */
+  .stats-2row{display:grid;grid-template-columns:repeat(3,1fr);gap:3px;padding:0 14px 10px;}
   .stat-pill{background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:7px 0;text-align:center;}
-  .stat-pill .sp-label{font-size:9px;color:var(--text3);margin-bottom:2px;}
+  .stat-pill.monthly{border-color:var(--border2);}
+  .stat-pill .sp-label{font-size:8px;color:var(--text3);margin-bottom:2px;letter-spacing:.2px;}
   .stat-pill .sp-val{font-family:'Oswald',sans-serif;font-size:12px;font-weight:600;color:var(--text2);}
   .stat-pill .sp-val.win{color:var(--win);}
   .stat-pill .sp-val.lose{color:var(--lose);}
   .stat-pill .sp-val.neutral{color:var(--text);}
-  .stats-row.monthly .stat-pill{border-color:var(--border2);}
-  .stats-row.monthly .sp-val{font-size:12px;}
 
   /* Goal bar */
   .goal-bar-wrap{padding:0 14px 8px;display:none;}
@@ -193,7 +189,12 @@
 
   <div class="header">
     <div class="header-top">
-      <div class="header-left"><div class="app-title">収支記録</div></div>
+      <div class="header-left">
+        <div class="app-title">収支記録</div>
+        <div class="year-inline" id="yearLabel"></div>
+        <button class="year-btn" onclick="changeYear(-1)">‹</button>
+        <button class="year-btn" onclick="changeYear(1)">›</button>
+      </div>
       <div class="header-right">
         <button class="icon-btn" onclick="openGoalSheet()">🎯</button>
         <button class="icon-btn" id="themeBtn" onclick="toggleTheme()">🌙</button>
@@ -209,30 +210,18 @@
 
   <!-- 収支タブのみ表示 -->
   <div class="home-controls" id="homeControls">
-    <div class="year-row">
-      <div class="year-label" id="yearLabel"></div>
-      <div class="year-nav">
-        <button onclick="changeYear(-1)">‹</button>
-        <button onclick="changeYear(1)">›</button>
-      </div>
-    </div>
+
     <!-- 月選択（1行） -->
     <div class="month-row" id="monthPills"></div>
 
-    <!-- 累計 -->
-    <div class="stat-row-label">累計</div>
-    <div class="stats-row">
-      <div class="stat-pill"><div class="sp-label">投資</div><div class="sp-val" id="cumInvest">¥0</div></div>
-      <div class="stat-pill"><div class="sp-label">回収</div><div class="sp-val" id="cumReturn">¥0</div></div>
-      <div class="stat-pill"><div class="sp-label">収支</div><div class="sp-val" id="cumBalance">¥0</div></div>
-    </div>
-
-    <!-- 今月 -->
-    <div class="stat-row-label">今月</div>
-    <div class="stats-row monthly">
-      <div class="stat-pill"><div class="sp-label">投資</div><div class="sp-val neutral" id="sumInvest">¥0</div></div>
-      <div class="stat-pill"><div class="sp-label">回収</div><div class="sp-val neutral" id="sumReturn">¥0</div></div>
-      <div class="stat-pill"><div class="sp-label">収支</div><div class="sp-val neutral" id="sumBalance">¥0</div></div>
+    <!-- 累計・今月 (ラベルはピル内に) -->
+    <div class="stats-2row">
+      <div class="stat-pill"><div class="sp-label">累計投資</div><div class="sp-val" id="cumInvest">¥0</div></div>
+      <div class="stat-pill"><div class="sp-label">累計回収</div><div class="sp-val" id="cumReturn">¥0</div></div>
+      <div class="stat-pill"><div class="sp-label">累計収支</div><div class="sp-val" id="cumBalance">¥0</div></div>
+      <div class="stat-pill monthly"><div class="sp-label">今月投資</div><div class="sp-val neutral" id="sumInvest">¥0</div></div>
+      <div class="stat-pill monthly"><div class="sp-label">今月回収</div><div class="sp-val neutral" id="sumReturn">¥0</div></div>
+      <div class="stat-pill monthly"><div class="sp-label">今月収支</div><div class="sp-val neutral" id="sumBalance">¥0</div></div>
     </div>
 
     <div class="goal-bar-wrap" id="goalBarWrap">
@@ -370,7 +359,7 @@ function selectMonth(m){curMonth=m;render();}
 function render(){
   document.getElementById('yearLabel').textContent=`${curYear}年`;
   const pills=document.getElementById('monthPills');pills.innerHTML='';
-  for(let m=1;m<=12;m++){const b=document.createElement('button');b.className='m-pill'+(m===curMonth?' active':'');b.textContent=m+'月';b.onclick=()=>selectMonth(m);pills.appendChild(b);}
+  for(let m=1;m<=12;m++){const b=document.createElement('button');b.className='m-pill'+(m===curMonth?' active':'');b.textContent=m;b.onclick=()=>selectMonth(m);pills.appendChild(b);}
 
   const mr=records.filter(r=>{const d=new Date(r.date);return d.getFullYear()===curYear&&d.getMonth()+1===curMonth;});
   const inv=mr.reduce((s,r)=>s+r.invest,0),ret=mr.reduce((s,r)=>s+r.ret,0),bal=ret-inv;
