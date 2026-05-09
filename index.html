@@ -570,4 +570,148 @@ function openDaySheet(day) {
         </div>
         <div class="rc-right">
           <div class="rc-amount ${cls}">${sign}${bal.toLocaleString()}</div>
-      
+          <div class="rc-sub">投資 ${r.invest.toLocaleString()} / 回収 ${r.ret.toLocaleString()}</div>
+        </div>
+        <button class="rc-del" onclick="deleteRecord('${r.id}')">🗑</button>
+      </div>`;
+    }).join('');
+  }
+  document.getElementById('dayOverlay').classList.add('open');
+  document.getElementById('daySheet').classList.add('open');
+}
+function closeDaySheet() {
+  document.getElementById('dayOverlay').classList.remove('open');
+  document.getElementById('daySheet').classList.remove('open');
+}
+function openAddFromDay() {
+  closeDaySheet();
+  const ds = `${curYear}-${String(curMonth).padStart(2,'0')}-${String(selectedDay).padStart(2,'0')}`;
+  setTimeout(()=>openAddSheet(ds), 100);
+}
+function deleteRecord(id) {
+  if (!confirm('この記録を削除しますか？')) return;
+  records = records.filter(r=>r.id!==id);
+  save(); render(); closeDaySheet(); showToast('削除しました');
+}
+
+// ── Goal Sheet ──
+function openGoalSheet() {
+  document.getElementById('fGoal').value = monthGoal || '';
+  document.getElementById('goalOverlay').classList.add('open');
+  document.getElementById('goalSheet').classList.add('open');
+}
+function closeGoalSheet() {
+  document.getElementById('goalOverlay').classList.remove('open');
+  document.getElementById('goalSheet').classList.remove('open');
+}
+function saveGoal() {
+  monthGoal = parseInt(document.getElementById('fGoal').value)||0;
+  localStorage.setItem('pachisuro_goal', monthGoal);
+  closeGoalSheet(); render();
+  showToast(monthGoal>0?`目標 ${monthGoal.toLocaleString()}円 を設定しました`:'目標を解除しました');
+}
+
+// ── Analysis ──
+function renderAnalysis() {
+  // 直近6ヶ月
+  const months = [];
+  for (let i=5; i>=0; i--) {
+    let y=curYear, m=curMonth-i;
+    while(m<=0){m+=12;y--;}
+    months.push({y,m});
+  }
+  const mData = months.map(({y,m})=>{
+    const recs = records.filter(r=>{const d=new Date(r.date);return d.getFullYear()===y&&d.getMonth()+1===m;});
+    return {label:`${m}月`, balance:recs.reduce((s,r)=>s+r.ret-r.invest,0), count:recs.length, wins:recs.filter(r=>r.ret>r.invest).length};
+  });
+
+  // Bar chart
+  const mx = Math.max(...mData.map(d=>Math.abs(d.balance)),1000);
+  document.getElementById('chartBars').innerHTML = mData.map(d=>{
+    const h=Math.round(Math.abs(d.balance)/mx*100);
+    const cls=d.balance>=0?'win':'lose';
+    const val=d.balance!==0?(d.balance/1000).toFixed(0)+'K':'0';
+    return `<div class="chart-bar-wrap"><div class="bar-val">${val}</div><div class="chart-bar-inner"><div class="bar-fill ${cls}" style="height:${h}px"></div></div><div class="bar-label">${d.label}</div></div>`;
+  }).join('');
+
+  // Line chart (cumulative balance)
+  const svg = document.getElementById('lineChart');
+  const W = svg.parentElement.clientWidth - 32;
+  const H = 100;
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  // Build cumulative by month (all records sorted)
+  const lineMonths = [];
+  for (let i=11; i>=0; i--) {
+    let y=curYear, m=curMonth-i;
+    while(m<=0){m+=12;y--;}
+    lineMonths.push({y,m});
+  }
+  let cum = 0;
+  const points = lineMonths.map(({y,m},i)=>{
+    const recs = records.filter(r=>{const d=new Date(r.date);return d.getFullYear()===y&&d.getMonth()+1===m;});
+    cum += recs.reduce((s,r)=>s+r.ret-r.invest,0);
+    return cum;
+  });
+  const minV = Math.min(...points, 0);
+  const maxV = Math.max(...points, 0);
+  const range = maxV - minV || 1000;
+  const toX = i => (i/(lineMonths.length-1)) * (W-20) + 10;
+  const toY = v => H - 10 - ((v-minV)/range)*(H-20);
+  const zeroY = toY(0);
+  const pathD = points.map((v,i)=>`${i===0?'M':'L'}${toX(i).toFixed(1)},${toY(v).toFixed(1)}`).join(' ');
+  const isWin = points[points.length-1] >= 0;
+  const lineColor = isWin ? 'var(--win)' : 'var(--lose)';
+  svg.innerHTML = `
+    <line x1="10" y1="${zeroY.toFixed(1)}" x2="${(W-10).toFixed(1)}" y2="${zeroY.toFixed(1)}" stroke="var(--border2)" stroke-width="1" stroke-dasharray="3,3"/>
+    <path d="${pathD}" fill="none" stroke="${lineColor}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    ${points.map((v,i)=>`<circle cx="${toX(i).toFixed(1)}" cy="${toY(v).toFixed(1)}" r="3" fill="${lineColor}"/>`).join('')}
+    ${lineMonths.filter((_,i)=>i%2===0).map(({m},i)=>`<text x="${toX(i*2).toFixed(1)}" y="${H}" font-size="8" fill="var(--text3)" text-anchor="middle">${m}月</text>`).join('')}
+  `;
+
+  // Win rate
+  const totalGames = records.length;
+  const totalWins  = records.filter(r=>r.ret>r.invest).length;
+  const totalLoses = totalGames - totalWins;
+  const wr = totalGames > 0 ? (totalWins/totalGames*100).toFixed(1) : '--';
+  const wrCls = parseFloat(wr) >= 50 ? 'win' : 'lose';
+
+  // Machine rank with win rate
+  const mkRank = (map, el, titleEl) => {
+    const list = Object.entries(map).map(([name,d])=>({
+      name, balance:d.ret-d.invest, count:d.count, wins:d.wins
+    })).sort((a,b)=>b.balance-a.balance);
+    if (!list.length){el.innerHTML='<div style="color:var(--text3);font-size:13px;padding:12px">データがありません</div>';return;}
+    el.innerHTML = list.slice(0,5).map((r,i)=>{
+      const cls=r.balance>=0?'win':'lose', sign=r.balance>=0?'+':'';
+      const wr2=(r.wins/r.count*100).toFixed(0);
+      const wrc=parseInt(wr2)>=50?'win':'lose';
+      return `<div class="rank-item">
+        <div class="rank-num">${i+1}</div>
+        <div class="rank-info">
+          <div class="rank-name">${r.name}</div>
+          <div class="rank-sub">${r.count}回 / ${r.wins}勝${r.count-r.wins}敗 <span class="winrate-badge ${wrc}">${wr2}%</span></div>
+        </div>
+        <div class="rank-val ${cls}">${sign}${r.balance.toLocaleString()}</div>
+      </div>`;
+    }).join('');
+  };
+
+  const mMap={},sMap={};
+  records.forEach(r=>{
+    if(!mMap[r.machine])mMap[r.machine]={invest:0,ret:0,count:0,wins:0};
+    mMap[r.machine].invest+=r.invest;mMap[r.machine].ret+=r.ret;mMap[r.machine].count++;
+    if(r.ret>r.invest)mMap[r.machine].wins++;
+    if(!sMap[r.shop])sMap[r.shop]={invest:0,ret:0,count:0,wins:0};
+    sMap[r.shop].invest+=r.invest;sMap[r.shop].ret+=r.ret;sMap[r.shop].count++;
+    if(r.ret>r.invest)sMap[r.shop].wins++;
+  });
+  document.getElementById('machineTitle').innerHTML =
+    `機種別成績 <span class="winrate-badge ${wrCls}">${wr}%</span>`;
+  mkRank(mMap, document.getElementById('machineRank'));
+  mkRank(sMap, document.getElementById('shopRank'));
+}
+
+render();
+</script>
+</body>
+</html>
