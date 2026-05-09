@@ -8,352 +8,286 @@
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Oswald:wght@400;600&display=swap');
 
   :root, [data-theme="dark"] {
-    --bg: #0e0e12; --surface: #18181f; --surface2: #22222c;
-    --border: rgba(255,255,255,0.07); --border2: rgba(255,255,255,0.13);
-    --accent: #e8b84b; --win: #3ecf8e; --lose: #f06a6a;
-    --text: #f0f0f0; --text2: #909098; --text3: #55555f; --radius: 12px;
-    --arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23909098' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    --bg:#0e0e12; --surface:#18181f; --surface2:#22222c;
+    --border:rgba(255,255,255,0.07); --border2:rgba(255,255,255,0.13);
+    --accent:#e8b84b; --win:#3ecf8e; --lose:#f06a6a;
+    --text:#f0f0f0; --text2:#909098; --text3:#55555f; --radius:12px;
+    --arrow:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23909098' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
   }
   [data-theme="light"] {
-    --bg: #f2f3f7; --surface: #ffffff; --surface2: #eeeef4;
-    --border: rgba(0,0,0,0.07); --border2: rgba(0,0,0,0.13);
-    --accent: #b8820a; --win: #1a9e68; --lose: #d03c3c;
-    --text: #1a1a24; --text2: #66666e; --text3: #aaaabc;
-    --arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2366666e' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    --bg:#f2f3f7; --surface:#ffffff; --surface2:#eeeef4;
+    --border:rgba(0,0,0,0.07); --border2:rgba(0,0,0,0.13);
+    --accent:#b8820a; --win:#1a9e68; --lose:#d03c3c;
+    --text:#1a1a24; --text2:#66666e; --text3:#aaaabc;
+    --arrow:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2366666e' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
   }
 
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
-  input, select { -webkit-user-select: auto; user-select: auto; }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;}
+  input,select{-webkit-user-select:auto;user-select:auto;}
+  body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text);min-height:100dvh;overscroll-behavior:none;transition:background .25s,color .25s;}
+  #app{max-width:480px;margin:0 auto;}
 
-  body {
-    font-family: 'Noto Sans JP', sans-serif;
-    background: var(--bg); color: var(--text);
-    min-height: 100dvh; overscroll-behavior: none;
-    transition: background .25s, color .25s;
-  }
+  /* ── Header ── */
+  .header{position:sticky;top:0;z-index:100;background:var(--bg);border-bottom:1px solid var(--border);padding:12px 16px 10px;transition:background .25s;}
+  .header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+  .header-left{display:flex;align-items:center;gap:10px;}
+  .app-title{font-family:'Oswald',sans-serif;font-size:20px;letter-spacing:2px;color:var(--accent);}
+  .header-right{display:flex;gap:6px;}
+  .icon-btn{width:34px;height:34px;border-radius:50%;border:1px solid var(--border2);background:var(--surface2);color:var(--text2);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;}
+  .month-pills{display:grid;grid-template-columns:repeat(6,1fr);gap:5px;}
+  .month-pill{background:var(--surface2);border:1px solid var(--border);color:var(--text2);border-radius:20px;padding:6px 0;font-size:12px;font-weight:500;font-family:'Noto Sans JP',sans-serif;cursor:pointer;text-align:center;transition:all .15s;}
+  .month-pill.active{background:var(--accent);border-color:var(--accent);color:#000;font-weight:700;}
+  .year-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+  .year-label{font-size:13px;font-weight:700;color:var(--text2);}
+  .year-nav{display:flex;gap:6px;}
+  .year-nav button{background:var(--surface2);border:1px solid var(--border);color:var(--text2);width:28px;height:28px;border-radius:8px;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
 
-  #app { max-width: 480px; margin: 0 auto; }
+  /* ── Today Banner ── */
+  .today-banner{
+    display:none;align-items:center;gap:10px;
+    padding:10px 16px;background:var(--surface);
+    border-bottom:1px solid var(--border);
+    transition:background .25s;
+  }
+  .today-banner.show{display:flex;}
+  .tb-emoji{font-size:20px;}
+  .tb-text{flex:1;font-size:12px;color:var(--text2);}
+  .tb-text strong{color:var(--text);font-size:13px;}
+  .tb-amount{font-family:'Oswald',sans-serif;font-size:18px;font-weight:600;}
+  .tb-amount.win{color:var(--win);}
+  .tb-amount.lose{color:var(--lose);}
+  .tb-amount.zero{color:var(--text2);}
 
-  /* Header */
-  .header {
-    position: sticky; top: 0; z-index: 100;
-    background: var(--bg); border-bottom: 1px solid var(--border);
-    padding: 12px 16px 10px; transition: background .25s;
-  }
-  .header-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
-  .header-left { display: flex; align-items: center; gap: 10px; }
-  .app-title { font-family: 'Oswald', sans-serif; font-size: 20px; letter-spacing: 2px; color: var(--accent); }
-  .theme-btn {
-    width: 34px; height: 34px; border-radius: 50%;
-    border: 1px solid var(--border2); background: var(--surface2); color: var(--text2);
-    font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center;
-    transition: all .2s;
-  }
-  /* Month Pills */
-  .month-pills {
-    display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px;
-  }
-  .month-pill {
-    background: var(--surface2); border: 1px solid var(--border);
-    color: var(--text2); border-radius: 20px;
-    padding: 6px 0; font-size: 12px; font-weight: 500;
-    font-family: 'Noto Sans JP', sans-serif;
-    cursor: pointer; text-align: center;
-    transition: all .15s; white-space: nowrap;
-  }
-  .month-pill.active {
-    background: var(--accent); border-color: var(--accent);
-    color: #000; font-weight: 700;
-  }
-  .year-row {
-    display: flex; align-items: center; justify-content: space-between;
-    margin-bottom: 8px;
-  }
-  .year-label { font-size: 13px; font-weight: 700; color: var(--text2); }
-  .year-nav { display: flex; gap: 6px; }
-  .year-nav button {
-    background: var(--surface2); border: 1px solid var(--border); color: var(--text2);
-    width: 28px; height: 28px; border-radius: 8px; font-size: 14px; cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-  }
+  /* ── Stats Strips ── */
+  .stats-strip{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;border-bottom:1px solid var(--border);padding:9px 16px;transition:background .25s;}
+  .stats-strip.cum{background:var(--surface2);}
+  .stats-strip.monthly{background:var(--surface);}
+  .strip-row-label{font-size:8px;letter-spacing:1px;font-weight:700;text-transform:uppercase;color:var(--text3);padding:4px 16px 2px;background:var(--surface2);border-bottom:none;}
+  .strip-row-label.monthly-lbl{background:var(--surface);}
+  .s-card{text-align:center;padding:1px 0;}
+  .s-card .s-label{font-size:9px;color:var(--text3);margin-bottom:3px;}
+  .s-card .s-value{font-family:'Oswald',sans-serif;font-size:13px;font-weight:600;color:var(--text2);}
+  .stats-strip.monthly .s-card .s-value.win{color:var(--win);font-size:15px;}
+  .stats-strip.monthly .s-card .s-value.lose{color:var(--lose);font-size:15px;}
+  .stats-strip.monthly .s-card .s-value.neutral{color:var(--text);font-size:15px;}
 
+  /* ── Goal Bar ── */
+  .goal-bar-wrap{padding:8px 16px 6px;background:var(--surface);border-bottom:1px solid var(--border);}
+  .goal-bar-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;}
+  .goal-bar-label{font-size:10px;color:var(--text3);}
+  .goal-bar-info{font-size:10px;color:var(--text2);}
+  .goal-bar-track{height:6px;background:var(--surface2);border-radius:3px;overflow:hidden;}
+  .goal-bar-fill{height:100%;border-radius:3px;transition:width .4s;}
+  .goal-bar-fill.win{background:var(--win);}
+  .goal-bar-fill.lose{background:var(--lose);}
 
-  /* Stats Strip shared */
-  .stats-strip {
-    display: grid; grid-template-columns: 1fr 1fr 1fr;
-    gap: 0; border-bottom: 1px solid var(--border);
-    padding: 9px 16px; transition: background .25s;
-  }
-  .stats-strip.cum { background: var(--surface2); }
-  .stats-strip.monthly { background: var(--surface); }
-  .strip-row-label {
-    font-size: 8px; letter-spacing: 1px; font-weight: 700;
-    text-transform: uppercase; color: var(--text3);
-    padding: 0 16px 3px; background: var(--surface2);
-    border-bottom: none;
-  }
-  .strip-row-label.monthly-lbl { background: var(--surface); color: var(--text3); }
-  .s-card { text-align: center; padding: 1px 0; }
-  .s-card .s-label { font-size: 9px; color: var(--text3); margin-bottom: 3px; letter-spacing: 0.3px; }
-  .s-card .s-value { font-family: 'Oswald', sans-serif; font-size: 13px; font-weight: 600; color: var(--text2); }
-  /* Monthly colored values */
-  .stats-strip.monthly .s-card .s-value.win  { color: var(--win);  font-size: 15px; }
-  .stats-strip.monthly .s-card .s-value.lose { color: var(--lose); font-size: 15px; }
-  .stats-strip.monthly .s-card .s-value.neutral { color: var(--text); font-size: 15px; }
+  /* ── Calendar ── */
+  .calendar{padding:0 12px 12px;}
+  .cal-header{display:grid;grid-template-columns:repeat(7,1fr);text-align:center;margin-bottom:6px;}
+  .cal-header span{font-size:11px;color:var(--text3);padding:4px 0;font-weight:500;}
+  .cal-header span:first-child{color:#f06a6a99;}
+  .cal-header span:last-child{color:#6ab4f099;}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;}
+  .cal-day{aspect-ratio:1;background:var(--surface);border-radius:8px;border:1px solid var(--border);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:transform .1s,background .25s;padding:2px;position:relative;}
+  .cal-day.empty{background:transparent;border-color:transparent;cursor:default;}
+  .cal-day.today{border-color:var(--accent)!important;}
+  .cal-day:not(.empty):active{transform:scale(0.93);}
+  .cal-day .day-num{font-size:12px;font-weight:500;color:var(--text2);line-height:1;}
+  .cal-day.sun .day-num{color:#f06a6a99;}
+  .cal-day.sat .day-num{color:#6ab4f099;}
+  .cal-day.has-data .day-num{color:var(--text);font-weight:700;}
+  .cal-day.today .day-num{color:var(--accent)!important;font-weight:700;}
+  .cal-day .day-val{font-family:'Oswald',sans-serif;font-size:10px;font-weight:600;margin-top:1px;line-height:1;}
+  .cal-day .day-val.win{color:var(--win);}
+  .cal-day .day-val.lose{color:var(--lose);}
+  .cal-day.win-bg{background:rgba(62,207,142,0.12);border-color:rgba(62,207,142,0.3);}
+  .cal-day.lose-bg{background:rgba(240,106,106,0.12);border-color:rgba(240,106,106,0.3);}
+  .cal-day .day-dot{width:4px;height:4px;border-radius:50%;background:var(--accent);position:absolute;bottom:3px;right:4px;}
 
-  /* Summary */
-  .summary { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; padding: 12px 16px; }
-  .summary-card {
-    background: var(--surface); border-radius: var(--radius);
-    padding: 10px 12px; border: 1px solid var(--border); transition: background .25s;
-  }
-  .summary-card .label { font-size: 10px; color: var(--text2); margin-bottom: 4px; }
-  .summary-card .value { font-family: 'Oswald', sans-serif; font-size: 18px; font-weight: 600; }
-  .summary-card .value.win { color: var(--win); }
-  .summary-card .value.lose { color: var(--lose); }
-  .summary-card .value.neutral { color: var(--text); }
+  /* ── Bottom Nav ── */
+  .bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:var(--surface);border-top:1px solid var(--border);display:flex;z-index:200;padding-bottom:env(safe-area-inset-bottom,0);transition:background .25s;}
+  .nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 0;border:none;background:transparent;color:var(--text3);font-family:'Noto Sans JP',sans-serif;font-size:10px;gap:3px;cursor:pointer;}
+  .nav-btn.active{color:var(--accent);}
+  .nav-btn .icon{font-size:20px;}
 
-  /* Calendar */
-  .calendar { padding: 0 12px 12px; }
-  .cal-header {
-    display: grid; grid-template-columns: repeat(7,1fr);
-    text-align: center; margin-bottom: 6px;
-  }
-  .cal-header span { font-size: 11px; color: var(--text3); padding: 4px 0; font-weight: 500; }
-  .cal-header span:first-child { color: #f06a6a99; }
-  .cal-header span:last-child  { color: #6ab4f099; }
+  /* ── FAB ── */
+  .fab{position:fixed;bottom:calc(68px + env(safe-area-inset-bottom,0px));right:50%;transform:translateX(calc(50% + 130px));width:52px;height:52px;border-radius:50%;background:var(--accent);border:none;color:#000;font-size:26px;cursor:pointer;box-shadow:0 4px 20px rgba(232,184,75,0.4);display:flex;align-items:center;justify-content:center;z-index:150;}
+  .fab:active{opacity:.85;transform:translateX(calc(50% + 130px)) scale(.92);}
 
-  .cal-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 3px; }
-  .cal-day {
-    aspect-ratio: 1; background: var(--surface); border-radius: 8px;
-    border: 1px solid var(--border); display: flex; flex-direction: column;
-    align-items: center; justify-content: center; cursor: pointer;
-    transition: transform .1s, background .25s; padding: 2px; position: relative;
-  }
-  .cal-day.empty { background: transparent; border-color: transparent; cursor: default; }
-  .cal-day.today { border-color: var(--accent) !important; }
-  .cal-day:not(.empty):active { transform: scale(0.93); }
-  .cal-day .day-num { font-size: 12px; font-weight: 500; color: var(--text2); line-height: 1; }
-  .cal-day.sun .day-num { color: #f06a6a99; }
-  .cal-day.sat .day-num { color: #6ab4f099; }
-  .cal-day.has-data .day-num { color: var(--text); font-weight: 700; }
-  .cal-day.today .day-num { color: var(--accent) !important; font-weight: 700; }
-  .cal-day .day-val {
-    font-family: 'Oswald', sans-serif; font-size: 10px; font-weight: 600;
-    margin-top: 1px; line-height: 1;
-  }
-  .cal-day .day-val.win { color: var(--win); }
-  .cal-day .day-val.lose { color: var(--lose); }
-  .cal-day.win-bg { background: rgba(62,207,142,0.12); border-color: rgba(62,207,142,0.3); }
-  .cal-day.lose-bg { background: rgba(240,106,106,0.12); border-color: rgba(240,106,106,0.3); }
-  .cal-day .day-dot {
-    width: 4px; height: 4px; border-radius: 50%;
-    background: var(--accent); position: absolute; bottom: 3px; right: 4px;
-  }
+  /* ── Sheet ── */
+  .overlay{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,0);pointer-events:none;transition:background .25s;}
+  .overlay.open{background:rgba(0,0,0,0.6);pointer-events:all;}
+  .sheet{position:fixed;bottom:-100%;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:var(--surface);border-radius:20px 20px 0 0;z-index:400;padding:0 16px calc(28px + env(safe-area-inset-bottom,0px));max-height:90vh;overflow-y:auto;transition:background .25s,bottom .3s cubic-bezier(.32,1,.32,1);}
+  .sheet.open{bottom:0;}
+  .sheet-handle{width:36px;height:4px;border-radius:2px;background:var(--border2);margin:12px auto 16px;}
+  .sheet-title{font-size:16px;font-weight:700;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;}
+  .sheet-close{background:var(--surface2);border:none;color:var(--text2);width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;}
 
-  /* Bottom Nav */
-  .bottom-nav {
-    position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
-    width: 100%; max-width: 480px;
-    background: var(--surface); border-top: 1px solid var(--border);
-    display: flex; z-index: 200;
-    padding-bottom: env(safe-area-inset-bottom, 0);
-    transition: background .25s;
-  }
-  .nav-btn {
-    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
-    padding: 10px 0 10px; border: none; background: transparent; color: var(--text3);
-    font-family: 'Noto Sans JP', sans-serif; font-size: 10px; gap: 3px; cursor: pointer;
-  }
-  .nav-btn.active { color: var(--accent); }
-  .nav-btn .icon { font-size: 20px; }
+  /* ── Form ── */
+  .form-row{margin-bottom:14px;}
+  .form-row label{display:block;font-size:11px;color:var(--text2);margin-bottom:5px;}
+  .form-row input,.form-row select{width:100%;background:var(--surface2);border:1px solid var(--border2);color:var(--text);border-radius:10px;padding:11px 14px;font-size:15px;font-family:'Noto Sans JP',sans-serif;outline:none;-webkit-appearance:none;appearance:none;transition:border-color .15s,background .25s;}
+  .form-row select{background-image:var(--arrow);background-repeat:no-repeat;background-position:right 14px center;padding-right:36px;}
+  .form-row input:focus,.form-row select:focus{border-color:var(--accent);}
+  .form-row.two{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .form-row.three{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+  .btn-primary{width:100%;padding:14px;border-radius:12px;background:var(--accent);border:none;color:#000;font-size:15px;font-weight:700;cursor:pointer;font-family:'Noto Sans JP',sans-serif;}
+  .btn-primary:active{opacity:.8;}
 
-  /* FAB */
-  .fab {
-    position: fixed;
-    bottom: calc(68px + env(safe-area-inset-bottom, 0px));
-    right: 50%; transform: translateX(calc(50% + 130px));
-    width: 52px; height: 52px; border-radius: 50%;
-    background: var(--accent); border: none; color: #000; font-size: 26px; cursor: pointer;
-    box-shadow: 0 4px 20px rgba(232,184,75,0.4);
-    display: flex; align-items: center; justify-content: center; z-index: 150;
-  }
-  .fab:active { opacity: 0.85; transform: translateX(calc(50% + 130px)) scale(0.92); }
+  /* ── Record Card ── */
+  .record-list{display:flex;flex-direction:column;gap:10px;margin-bottom:16px;}
+  .record-card{background:var(--surface2);border-radius:var(--radius);padding:12px 14px;border:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start;transition:background .25s;}
+  .rc-left{flex:1;}
+  .rc-shop{font-size:13px;font-weight:700;margin-bottom:2px;}
+  .rc-machine{font-size:12px;color:var(--text2);}
+  .rc-seat{font-size:11px;color:var(--text3);margin-top:2px;}
+  .rc-memo{font-size:11px;color:var(--text3);margin-top:3px;}
+  .rc-right{text-align:right;}
+  .rc-amount{font-family:'Oswald',sans-serif;font-size:20px;font-weight:600;}
+  .rc-amount.win{color:var(--win);}
+  .rc-amount.lose{color:var(--lose);}
+  .rc-sub{font-size:10px;color:var(--text3);margin-top:2px;}
+  .rc-del{background:none;border:none;color:var(--text3);font-size:16px;cursor:pointer;margin-left:10px;padding:4px;border-radius:6px;}
 
-  /* Sheet */
-  .overlay { position: fixed; inset: 0; z-index: 300; background: rgba(0,0,0,0); pointer-events: none; transition: background .25s; }
-  .overlay.open { background: rgba(0,0,0,0.6); pointer-events: all; }
-  .sheet {
-    position: fixed; bottom: -100%; left: 50%; transform: translateX(-50%);
-    width: 100%; max-width: 480px; background: var(--surface); border-radius: 20px 20px 0 0;
-    z-index: 400; padding: 0 16px calc(28px + env(safe-area-inset-bottom, 0px));
-    max-height: 90vh; overflow-y: auto;
-    transition: background .25s, bottom .3s cubic-bezier(.32,1,.32,1);
-  }
-  .sheet.open { bottom: 0; }
-  .sheet-handle { width: 36px; height: 4px; border-radius: 2px; background: var(--border2); margin: 12px auto 16px; }
-  .sheet-title { font-size: 16px; font-weight: 700; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
-  .sheet-close {
-    background: var(--surface2); border: none; color: var(--text2);
-    width: 28px; height: 28px; border-radius: 50%; cursor: pointer; font-size: 14px;
-    display: flex; align-items: center; justify-content: center;
-  }
+  .empty-state{text-align:center;padding:32px 0;color:var(--text3);font-size:13px;}
+  .empty-state .emo{font-size:36px;margin-bottom:8px;}
 
-  /* Form */
-  .form-row { margin-bottom: 14px; }
-  .form-row label { display: block; font-size: 11px; color: var(--text2); margin-bottom: 5px; }
-  .form-row input, .form-row select {
-    width: 100%; background: var(--surface2); border: 1px solid var(--border2);
-    color: var(--text); border-radius: 10px; padding: 11px 14px; font-size: 15px;
-    font-family: 'Noto Sans JP', sans-serif; outline: none;
-    -webkit-appearance: none; appearance: none; transition: border-color .15s, background .25s;
-  }
-  .form-row select {
-    background-image: var(--arrow); background-repeat: no-repeat;
-    background-position: right 14px center; padding-right: 36px;
-  }
-  .form-row input:focus, .form-row select:focus { border-color: var(--accent); }
-  .form-row.two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  .btn-primary {
-    width: 100%; padding: 14px; border-radius: 12px; background: var(--accent); border: none;
-    color: #000; font-size: 15px; font-weight: 700; cursor: pointer;
-    font-family: 'Noto Sans JP', sans-serif;
-  }
-  .btn-primary:active { opacity: 0.8; }
+  /* ── Analysis ── */
+  .page{display:none;padding:12px 16px 80px;}
+  .page.active{display:block;}
+  #page-home{padding-bottom:calc(80px + env(safe-area-inset-bottom,0px));}
+  .section-title{font-size:12px;color:var(--text2);letter-spacing:1px;margin:16px 0 10px;font-weight:500;text-transform:uppercase;}
 
-  /* Record */
-  .record-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
-  .record-card {
-    background: var(--surface2); border-radius: var(--radius);
-    padding: 12px 14px; border: 1px solid var(--border);
-    display: flex; justify-content: space-between; align-items: flex-start;
-    transition: background .25s;
-  }
-  .record-card .rc-left { flex: 1; }
-  .record-card .rc-shop { font-size: 13px; font-weight: 700; margin-bottom: 2px; }
-  .record-card .rc-machine { font-size: 12px; color: var(--text2); }
-  .record-card .rc-memo { font-size: 11px; color: var(--text3); margin-top: 4px; }
-  .record-card .rc-right { text-align: right; }
-  .record-card .rc-amount { font-family: 'Oswald', sans-serif; font-size: 20px; font-weight: 600; }
-  .record-card .rc-amount.win { color: var(--win); }
-  .record-card .rc-amount.lose { color: var(--lose); }
-  .record-card .rc-sub { font-size: 10px; color: var(--text3); margin-top: 2px; }
-  .record-card .rc-del { background: none; border: none; color: var(--text3); font-size: 16px; cursor: pointer; margin-left: 10px; padding: 4px; border-radius: 6px; }
+  /* win rate badge */
+  .winrate-badge{display:inline-block;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;margin-left:8px;vertical-align:middle;}
+  .winrate-badge.win{background:rgba(62,207,142,0.15);color:var(--win);}
+  .winrate-badge.lose{background:rgba(240,106,106,0.15);color:var(--lose);}
 
-  .empty-state { text-align: center; padding: 32px 0; color: var(--text3); font-size: 13px; }
-  .empty-state .emo { font-size: 36px; margin-bottom: 8px; }
+  /* Bar chart */
+  .chart-wrap{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);padding:16px;transition:background .25s;margin-bottom:12px;}
+  .chart-bars{display:flex;gap:6px;align-items:flex-end;min-height:120px;}
+  .chart-bar-wrap{display:flex;flex-direction:column;align-items:center;gap:4px;flex:1;}
+  .chart-bar-inner{width:100%;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100px;}
+  .bar-fill{width:100%;border-radius:4px 4px 0 0;min-height:2px;}
+  .bar-fill.win{background:var(--win);}
+  .bar-fill.lose{background:var(--lose);}
+  .bar-label{font-size:9px;color:var(--text3);}
+  .bar-val{font-size:9px;font-family:'Oswald',sans-serif;color:var(--text2);}
 
-  /* Analysis */
-  .page { display: none; padding: 12px 16px 80px; }
-  .page.active { display: block; }
-  #page-home { padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px)); }
-  .section-title { font-size: 12px; color: var(--text2); letter-spacing: 1px; margin: 16px 0 10px; font-weight: 500; text-transform: uppercase; }
-  .chart-wrap { background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border); padding: 16px; transition: background .25s; }
-  .chart-bars { display: flex; gap: 6px; align-items: flex-end; min-height: 120px; }
-  .chart-bar-wrap { display: flex; flex-direction: column; align-items: center; gap: 4px; flex: 1; }
-  .chart-bar-inner { width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100px; }
-  .bar-fill { width: 100%; border-radius: 4px 4px 0 0; min-height: 2px; }
-  .bar-fill.win { background: var(--win); }
-  .bar-fill.lose { background: var(--lose); }
-  .bar-label { font-size: 9px; color: var(--text3); }
-  .bar-val { font-size: 9px; font-family: 'Oswald', sans-serif; color: var(--text2); }
-  .rank-list { display: flex; flex-direction: column; gap: 8px; }
-  .rank-item { background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border); padding: 12px 14px; display: flex; align-items: center; gap: 12px; transition: background .25s; }
-  .rank-num { font-family: 'Oswald', sans-serif; font-size: 22px; color: var(--text3); width: 24px; }
-  .rank-info { flex: 1; }
-  .rank-name { font-size: 13px; font-weight: 700; }
-  .rank-sub { font-size: 11px; color: var(--text2); margin-top: 2px; }
-  .rank-val { font-family: 'Oswald', sans-serif; font-size: 18px; font-weight: 600; }
-  .rank-val.win { color: var(--win); }
-  .rank-val.lose { color: var(--lose); }
+  /* Line chart */
+  .line-chart-wrap{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);padding:16px;transition:background .25s;}
+  .line-chart-wrap svg{width:100%;height:120px;overflow:visible;}
+
+  /* Rank */
+  .rank-list{display:flex;flex-direction:column;gap:8px;}
+  .rank-item{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);padding:12px 14px;display:flex;align-items:center;gap:12px;transition:background .25s;}
+  .rank-num{font-family:'Oswald',sans-serif;font-size:22px;color:var(--text3);width:24px;}
+  .rank-info{flex:1;}
+  .rank-name{font-size:13px;font-weight:700;}
+  .rank-sub{font-size:11px;color:var(--text2);margin-top:2px;}
+  .rank-val{font-family:'Oswald',sans-serif;font-size:18px;font-weight:600;}
+  .rank-val.win{color:var(--win);}
+  .rank-val.lose{color:var(--lose);}
 
   /* Toast */
-  .toast {
-    position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(20px);
-    background: var(--surface2); color: var(--text); padding: 10px 20px; border-radius: 24px;
-    font-size: 13px; opacity: 0; transition: all .3s; pointer-events: none; z-index: 999;
-    border: 1px solid var(--border2); white-space: nowrap;
-  }
-  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--surface2);color:var(--text);padding:10px 20px;border-radius:24px;font-size:13px;opacity:0;transition:all .3s;pointer-events:none;z-index:999;border:1px solid var(--border2);white-space:nowrap;}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 
-  ::-webkit-scrollbar { width: 4px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+  ::-webkit-scrollbar{width:4px;}
+  ::-webkit-scrollbar-track{background:transparent;}
+  ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
 </style>
 </head>
 <body>
 <div id="app">
+  <!-- Header -->
   <div class="header">
     <div class="header-top">
       <div class="header-left">
         <div class="app-title">収支記録</div>
-        <button class="theme-btn" id="themeBtn" onclick="toggleTheme()">🌙</button>
       </div>
+      <div class="header-right">
+        <button class="icon-btn" onclick="openGoalSheet()" title="目標設定">🎯</button>
+        <button class="icon-btn" id="themeBtn" onclick="toggleTheme()">🌙</button>
+      </div>
+    </div>
+    <div class="year-row">
+      <div class="year-label" id="yearLabel"></div>
       <div class="year-nav">
         <button onclick="changeYear(-1)">‹</button>
         <button onclick="changeYear(1)">›</button>
       </div>
     </div>
-    <div class="year-row">
-      <div class="year-label" id="yearLabel"></div>
-    </div>
     <div class="month-pills" id="monthPills"></div>
   </div>
 
-  <!-- Cumulative row -->
+  <!-- Today Banner -->
+  <div class="today-banner" id="todayBanner">
+    <div class="tb-emoji">🎰</div>
+    <div class="tb-text"><strong>今日</strong>の結果</div>
+    <div class="tb-amount" id="todayAmount">¥0</div>
+  </div>
+
+  <!-- Cumulative -->
   <div class="strip-row-label">累計</div>
   <div class="stats-strip cum">
     <div class="s-card"><div class="s-label">投資</div><div class="s-value" id="cumInvest">¥0</div></div>
     <div class="s-card"><div class="s-label">回収</div><div class="s-value" id="cumReturn">¥0</div></div>
     <div class="s-card"><div class="s-label">収支</div><div class="s-value" id="cumBalance">¥0</div></div>
   </div>
-  <!-- Monthly row -->
+  <!-- Monthly -->
   <div class="strip-row-label monthly-lbl">今月</div>
   <div class="stats-strip monthly">
     <div class="s-card"><div class="s-label">投資</div><div class="s-value neutral" id="sumInvest">¥0</div></div>
     <div class="s-card"><div class="s-label">回収</div><div class="s-value neutral" id="sumReturn">¥0</div></div>
     <div class="s-card"><div class="s-label">収支</div><div class="s-value neutral" id="sumBalance">¥0</div></div>
   </div>
+  <!-- Goal Bar -->
+  <div class="goal-bar-wrap" id="goalBarWrap" style="display:none">
+    <div class="goal-bar-top">
+      <div class="goal-bar-label">今月の目標</div>
+      <div class="goal-bar-info" id="goalBarInfo"></div>
+    </div>
+    <div class="goal-bar-track"><div class="goal-bar-fill" id="goalBarFill" style="width:0%"></div></div>
+  </div>
 
-
+  <!-- Calendar Page -->
   <div id="page-home">
     <div class="calendar">
       <div class="cal-header">
         <span>日</span><span>月</span><span>火</span><span>水</span><span>木</span><span>金</span><span>土</span>
       </div>
-      <div class="cal-grid" id="calGrid" ></div>
+      <div class="cal-grid" id="calGrid"></div>
     </div>
   </div>
 
+  <!-- Analysis Page -->
   <div class="page" id="page-analysis">
-    <div class="section-title">月別収支グラフ（直近6ヶ月）</div>
+    <div class="section-title">月別収支（棒グラフ）</div>
     <div class="chart-wrap"><div class="chart-bars" id="chartBars"></div></div>
-    <div class="section-title">機種別成績</div>
+    <div class="section-title">累計収支（折れ線）</div>
+    <div class="line-chart-wrap"><svg id="lineChart"></svg></div>
+    <div class="section-title" id="machineTitle">機種別成績</div>
     <div class="rank-list" id="machineRank"></div>
-    <div class="section-title">店舗別成績</div>
+    <div class="section-title" id="shopTitle">店舗別成績</div>
     <div class="rank-list" id="shopRank"></div>
   </div>
 </div>
 
+<!-- Bottom Nav -->
 <div class="bottom-nav">
   <button class="nav-btn active" id="nav-home" onclick="showPage('home')"><span class="icon">📅</span>カレンダー</button>
   <button class="nav-btn" id="nav-analysis" onclick="showPage('analysis')"><span class="icon">📊</span>分析</button>
 </div>
-
 <button class="fab" onclick="openAddSheet()">＋</button>
 
+<!-- Add Sheet -->
 <div class="overlay" id="addOverlay" onclick="closeAddSheet()"></div>
 <div class="sheet" id="addSheet">
   <div class="sheet-handle"></div>
-  <div class="sheet-title">
-    <span id="sheetTitle">収支を追加</span>
-    <button class="sheet-close" onclick="closeAddSheet()">✕</button>
-  </div>
-  <div class="form-row">
-    <label>日付</label>
-    <input type="date" id="fDate">
-  </div>
+  <div class="sheet-title"><span id="sheetTitle">収支を追加</span><button class="sheet-close" onclick="closeAddSheet()">✕</button></div>
+  <div class="form-row"><label>日付</label><input type="date" id="fDate"></div>
   <div class="form-row">
     <label>店舗</label>
     <select id="fShop">
@@ -362,36 +296,46 @@
       <option value="横浜123">横浜123</option>
     </select>
   </div>
-  <div class="form-row">
-    <label>機種名</label>
-    <select id="fMachine">
-      <option value="">選択してください</option>
-      <option value="東京喰種">東京喰種</option>
-      <option value="ゴットイーター">ゴットイーター</option>
-      <option value="炎炎ノ消防隊">炎炎ノ消防隊</option>
-      <option value="北斗転生">北斗転生</option>
-    </select>
+  <div class="form-row two">
+    <div>
+      <label>機種名</label>
+      <select id="fMachine">
+        <option value="">選択</option>
+        <option value="東京喰種">東京喰種</option>
+        <option value="ゴットイーター">ゴットイーター</option>
+        <option value="炎炎ノ消防隊">炎炎ノ消防隊</option>
+        <option value="北斗転生">北斗転生</option>
+      </select>
+    </div>
+    <div><label>台番号</label><input type="number" id="fSeat" placeholder="例：123" min="1"></div>
   </div>
   <div class="form-row two">
     <div><label>投資額（円）</label><input type="number" id="fInvest" placeholder="0" min="0" step="500"></div>
     <div><label>回収額（円）</label><input type="number" id="fReturn" placeholder="0" min="0" step="500"></div>
   </div>
-  <div class="form-row">
-    <label>メモ（任意）</label>
-    <input type="text" id="fMemo" placeholder="例：天井狙い、高設定確定">
-  </div>
+  <div class="form-row"><label>メモ（任意）</label><input type="text" id="fMemo" placeholder="例：天井狙い、高設定確定"></div>
   <button class="btn-primary" onclick="saveRecord()">保存する</button>
 </div>
 
+<!-- Day Sheet -->
 <div class="overlay" id="dayOverlay" onclick="closeDaySheet()"></div>
 <div class="sheet" id="daySheet">
   <div class="sheet-handle"></div>
-  <div class="sheet-title">
-    <span id="daySheetTitle"></span>
-    <button class="sheet-close" onclick="closeDaySheet()">✕</button>
-  </div>
+  <div class="sheet-title"><span id="daySheetTitle"></span><button class="sheet-close" onclick="closeDaySheet()">✕</button></div>
   <div class="record-list" id="dayRecords"></div>
   <button class="btn-primary" onclick="openAddFromDay()">この日に追加</button>
+</div>
+
+<!-- Goal Sheet -->
+<div class="overlay" id="goalOverlay" onclick="closeGoalSheet()"></div>
+<div class="sheet" id="goalSheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title"><span>今月の目標収支</span><button class="sheet-close" onclick="closeGoalSheet()">✕</button></div>
+  <div class="form-row">
+    <label>目標収支（円）</label>
+    <input type="number" id="fGoal" placeholder="例：30000" step="1000">
+  </div>
+  <button class="btn-primary" onclick="saveGoal()">設定する</button>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -405,6 +349,7 @@ let curMonth = new Date().getMonth() + 1;
 let selectedDay = null;
 let editId = null;
 let theme = localStorage.getItem('pachisuro_theme') || 'dark';
+let monthGoal = parseInt(localStorage.getItem('pachisuro_goal') || '0');
 
 function applyTheme() {
   document.documentElement.setAttribute('data-theme', theme);
@@ -434,17 +379,10 @@ function showPage(p) {
   if (p === 'analysis') renderAnalysis();
 }
 
-function changeYear(d) {
-  curYear += d;
-  render();
-}
-function selectMonth(m) {
-  curMonth = m;
-  render();
-}
+function changeYear(d) { curYear += d; render(); }
+function selectMonth(m) { curMonth = m; render(); }
 
 function render() {
-  // Year label
   document.getElementById('yearLabel').textContent = `${curYear}年`;
 
   // Month pills
@@ -457,16 +395,18 @@ function render() {
     btn.onclick = () => selectMonth(m);
     pills.appendChild(btn);
   }
+
   const monthRecs = records.filter(r => {
     const d = new Date(r.date);
     return d.getFullYear()===curYear && d.getMonth()+1===curMonth;
   });
-  const invest = monthRecs.reduce((s,r)=>s+r.invest,0);
-  const ret    = monthRecs.reduce((s,r)=>s+r.ret,0);
+  const invest = monthRecs.reduce((s,r)=>s+r.invest, 0);
+  const ret    = monthRecs.reduce((s,r)=>s+r.ret, 0);
   const bal    = ret - invest;
+
   // Cumulative
-  const cumI = records.reduce((s,r)=>s+r.invest,0);
-  const cumR = records.reduce((s,r)=>s+r.ret,0);
+  const cumI = records.reduce((s,r)=>s+r.invest, 0);
+  const cumR = records.reduce((s,r)=>s+r.ret, 0);
   const cumB = cumR - cumI;
   document.getElementById('cumInvest').textContent = '¥'+cumI.toLocaleString();
   document.getElementById('cumReturn').textContent = '¥'+cumR.toLocaleString();
@@ -480,6 +420,46 @@ function render() {
   const balEl = document.getElementById('sumBalance');
   balEl.textContent = (bal>=0?'+':'')+bal.toLocaleString()+'円';
   balEl.className = 's-value '+(bal>0?'win':bal<0?'lose':'neutral');
+
+  // Goal bar
+  const goalWrap = document.getElementById('goalBarWrap');
+  if (monthGoal > 0) {
+    goalWrap.style.display = '';
+    const pct = Math.min(Math.max(bal / monthGoal * 100, 0), 100);
+    const fill = document.getElementById('goalBarFill');
+    fill.style.width = pct.toFixed(1) + '%';
+    fill.className = 'goal-bar-fill ' + (bal >= 0 ? 'win' : 'lose');
+    const remain = monthGoal - bal;
+    document.getElementById('goalBarInfo').textContent =
+      bal >= monthGoal
+        ? `🎉 目標達成！`
+        : `目標まであと ${remain.toLocaleString()}円 (${pct.toFixed(0)}%)`;
+  } else {
+    goalWrap.style.display = 'none';
+  }
+
+  // Today banner
+  const todayDate = new Date();
+  const isCurrentMonth = todayDate.getFullYear()===curYear && todayDate.getMonth()+1===curMonth;
+  const banner = document.getElementById('todayBanner');
+  if (isCurrentMonth) {
+    const todayRecs = records.filter(r => {
+      const d = new Date(r.date);
+      return d.getFullYear()===todayDate.getFullYear() && d.getMonth()===todayDate.getMonth() && d.getDate()===todayDate.getDate();
+    });
+    if (todayRecs.length > 0) {
+      const todayBal = todayRecs.reduce((s,r)=>s+r.ret-r.invest, 0);
+      banner.classList.add('show');
+      const amtEl = document.getElementById('todayAmount');
+      amtEl.textContent = (todayBal>=0?'+':'')+todayBal.toLocaleString()+'円';
+      amtEl.className = 'tb-amount ' + (todayBal>0?'win':todayBal<0?'lose':'zero');
+    } else {
+      banner.classList.remove('show');
+    }
+  } else {
+    banner.classList.remove('show');
+  }
+
   renderCalendar(monthRecs);
 }
 
@@ -519,22 +499,23 @@ function renderCalendar(monthRecs) {
       el.innerHTML += `<div class="day-val ${vc}">${disp}</div>`;
       if (dd.count > 1) el.innerHTML += `<div class="day-dot"></div>`;
     }
-    el.onclick = ()=>openDaySheet(d);
+    el.onclick = () => openDaySheet(d);
     grid.appendChild(el);
   }
 }
 
+// ── Add Sheet ──
 function todayStr() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
-
 function openAddSheet(date) {
   editId = null;
   document.getElementById('sheetTitle').textContent = '収支を追加';
   document.getElementById('fDate').value = date || todayStr();
   document.getElementById('fShop').value = '';
   document.getElementById('fMachine').value = '';
+  document.getElementById('fSeat').value = '';
   document.getElementById('fInvest').value = '';
   document.getElementById('fReturn').value = '';
   document.getElementById('fMemo').value = '';
@@ -545,11 +526,11 @@ function closeAddSheet() {
   document.getElementById('addOverlay').classList.remove('open');
   document.getElementById('addSheet').classList.remove('open');
 }
-
 function saveRecord() {
   const date    = document.getElementById('fDate').value;
   const shop    = document.getElementById('fShop').value;
   const machine = document.getElementById('fMachine').value;
+  const seat    = document.getElementById('fSeat').value.trim();
   const invest  = parseInt(document.getElementById('fInvest').value)||0;
   const ret     = parseInt(document.getElementById('fReturn').value)||0;
   const memo    = document.getElementById('fMemo').value.trim();
@@ -558,15 +539,16 @@ function saveRecord() {
   if (!machine) { showToast('機種名を選択してください'); return; }
   if (editId) {
     const idx = records.findIndex(r=>r.id===editId);
-    if (idx>=0) records[idx] = {...records[idx], date, shop, machine, invest, ret, memo};
+    if (idx>=0) records[idx] = {...records[idx], date, shop, machine, seat, invest, ret, memo};
   } else {
-    records.push({id:uid(), date, shop, machine, invest, ret, memo, createdAt:new Date().toISOString()});
+    records.push({id:uid(), date, shop, machine, seat, invest, ret, memo, createdAt:new Date().toISOString()});
   }
   save(); render(); closeAddSheet();
   showToast(editId?'更新しました ✓':'追加しました ✓');
   editId = null;
 }
 
+// ── Day Sheet ──
 function openDaySheet(day) {
   selectedDay = day;
   document.getElementById('daySheetTitle').textContent = `${curYear}年${curMonth}月${day}日`;
@@ -583,74 +565,9 @@ function openDaySheet(day) {
       return `<div class="record-card">
         <div class="rc-left">
           <div class="rc-shop">${r.shop}</div>
-          <div class="rc-machine">${r.machine}</div>
+          <div class="rc-machine">${r.machine}${r.seat?' <span style="color:var(--text3);font-size:11px">台'+r.seat+'番</span>':''}</div>
           ${r.memo?`<div class="rc-memo">${r.memo}</div>`:''}
         </div>
         <div class="rc-right">
           <div class="rc-amount ${cls}">${sign}${bal.toLocaleString()}</div>
-          <div class="rc-sub">投資 ${r.invest.toLocaleString()} / 回収 ${r.ret.toLocaleString()}</div>
-        </div>
-        <button class="rc-del" onclick="deleteRecord('${r.id}')">🗑</button>
-      </div>`;
-    }).join('');
-  }
-  document.getElementById('dayOverlay').classList.add('open');
-  document.getElementById('daySheet').classList.add('open');
-}
-function closeDaySheet() {
-  document.getElementById('dayOverlay').classList.remove('open');
-  document.getElementById('daySheet').classList.remove('open');
-}
-function openAddFromDay() {
-  closeDaySheet();
-  const ds = `${curYear}-${String(curMonth).padStart(2,'0')}-${String(selectedDay).padStart(2,'0')}`;
-  setTimeout(()=>openAddSheet(ds), 100);
-}
-function deleteRecord(id) {
-  if (!confirm('この記録を削除しますか？')) return;
-  records = records.filter(r=>r.id!==id);
-  save(); render(); closeDaySheet(); showToast('削除しました');
-}
-
-function renderAnalysis() {
-  const months=[];
-  for (let i=5;i>=0;i--) {
-    let y=curYear, m=curMonth-i;
-    while(m<=0){m+=12;y--;}
-    months.push({y,m});
-  }
-  const mData = months.map(({y,m})=>{
-    const recs = records.filter(r=>{const d=new Date(r.date);return d.getFullYear()===y&&d.getMonth()+1===m;});
-    return {label:`${m}月`, balance: recs.reduce((s,r)=>s+r.ret-r.invest,0)};
-  });
-  const mx = Math.max(...mData.map(d=>Math.abs(d.balance)),1000);
-  document.getElementById('chartBars').innerHTML = mData.map(d=>{
-    const h=Math.round(Math.abs(d.balance)/mx*100);
-    const cls=d.balance>=0?'win':'lose';
-    const val=d.balance!==0?(d.balance/1000).toFixed(0)+'K':'0';
-    return `<div class="chart-bar-wrap"><div class="bar-val">${val}</div><div class="chart-bar-inner"><div class="bar-fill ${cls}" style="height:${h}px"></div></div><div class="bar-label">${d.label}</div></div>`;
-  }).join('');
-
-  const mkRank = (map, el) => {
-    const list = Object.entries(map).map(([name,d])=>({name,balance:d.ret-d.invest,count:d.count})).sort((a,b)=>b.balance-a.balance);
-    if (!list.length){el.innerHTML='<div style="color:var(--text3);font-size:13px;padding:12px">データがありません</div>';return;}
-    el.innerHTML = list.slice(0,5).map((r,i)=>{
-      const cls=r.balance>=0?'win':'lose', sign=r.balance>=0?'+':'';
-      return `<div class="rank-item"><div class="rank-num">${i+1}</div><div class="rank-info"><div class="rank-name">${r.name}</div><div class="rank-sub">${r.count}回</div></div><div class="rank-val ${cls}">${sign}${r.balance.toLocaleString()}</div></div>`;
-    }).join('');
-  };
-  const mMap={},sMap={};
-  records.forEach(r=>{
-    if(!mMap[r.machine])mMap[r.machine]={invest:0,ret:0,count:0};
-    mMap[r.machine].invest+=r.invest;mMap[r.machine].ret+=r.ret;mMap[r.machine].count++;
-    if(!sMap[r.shop])sMap[r.shop]={invest:0,ret:0,count:0};
-    sMap[r.shop].invest+=r.invest;sMap[r.shop].ret+=r.ret;sMap[r.shop].count++;
-  });
-  mkRank(mMap,document.getElementById('machineRank'));
-  mkRank(sMap,document.getElementById('shopRank'));
-}
-
-render();
-</script>
-</body>
-</html>
+      
