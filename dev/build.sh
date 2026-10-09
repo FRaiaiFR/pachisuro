@@ -4,7 +4,7 @@
 #   $OUT/index.html … GitHub Pages 用の単体ページ（既定は dist/。ホーム画面用の設定つき）
 cd "$(dirname "$0")"
 OUT="${OUT:-dist}"
-scripts() { printf '<script>\n'; cat src/card.js; printf '</script>\n<script>\n'; sed '$d' src/calc.js; printf '</script>\n<script>\n'; cat src/app.js; printf '</script>\n'; }
+scripts() { printf '<script>\n'; cat src/card.js; printf '</script>\n<script>\n'; sed '$d' src/calc.js; printf '</script>\n<script>\n'; sed '$d' src/merge.js; printf '</script>\n<script>\n'; cat src/app.js; printf '</script>\n'; }
 { cat src/head.html; cat src/body.html; scripts; } > index.html
 mkdir -p "$OUT"
 python3 - "$OUT" <<'PY'
@@ -16,6 +16,7 @@ body = re.sub(r'\s*<aside class="notes".*?</aside>', '', body, flags=re.S).repla
 assert 'class="notes"' not in body and 'stage solo' in body
 card = open('src/card.js', encoding='utf-8').read()
 calc = open('src/calc.js', encoding='utf-8').read().rstrip('\n').rsplit('\n', 1)[0] + '\n'
+merge = open('src/merge.js', encoding='utf-8').read().rstrip('\n').rsplit('\n', 1)[0] + '\n'
 app = open('src/app.js', encoding='utf-8').read()
 html = f'''<!doctype html>
 <html lang="ja">
@@ -39,6 +40,8 @@ html = f'''<!doctype html>
 {card}</script>
 <script>
 {calc}</script>
+<script>
+{merge}</script>
 <script>
 {app}</script>
 <script>
