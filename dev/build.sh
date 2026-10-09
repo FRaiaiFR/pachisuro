@@ -1,6 +1,6 @@
 #!/bin/sh
 # ソース（src/）から2つの成果物を作る
-#   index.html      … Claude のアーティファクト用（本文だけの断片）
+#   index.html      … Claude のアーティファクト用（本文だけの断片。PC で開くと説明つきのプレビューになる）
 #   $OUT/index.html … GitHub Pages 用の単体ページ（既定は dist/。ホーム画面用の設定つき）
 cd "$(dirname "$0")"
 OUT="${OUT:-dist}"
@@ -10,7 +10,7 @@ mkdir -p "$OUT"
 python3 - "$OUT" <<'PY'
 import re, sys, io
 out = sys.argv[1]
-head = open('src/head.html', encoding='utf-8').read().replace('<title>パチスロ収支アプリ デモ1</title>', '<title>パチスロ収支</title>')
+head = open('src/head.html', encoding='utf-8').read()
 body = open('src/body.html', encoding='utf-8').read()
 body = re.sub(r'\s*<aside class="notes".*?</aside>', '', body, flags=re.S).replace('<div class="stage">', '<div class="stage solo">')
 assert 'class="notes"' not in body and 'stage solo' in body

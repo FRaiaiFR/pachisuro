@@ -32,80 +32,35 @@ const ICON = {
 const svg = (k, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true">${ICON[k]}</svg>`;
 
 /* ---------- state ---------- */
-let db, S, mine = null, sample = null;   // db は表示中のデータ（mine か sample のどちらか）
+let db, S, mine = null;   // mine が記録の本体。db はその別名（画面の表示に使う）
 const storeOf = id => db.stores.find(s => s.id === id);
 const machineOf = id => db.machines.find(m => m.id === id);
 const inMonth = m => db.sessions.filter(s => s.date.startsWith(m));
 const mainStore = () => db.stores.find(s => s.main) || db.stores[0];
 const blankPlay = () => ({ machineId: '', cash: 0, savedIn: 0, carryIn: 0, out: 0, minutes: 0 });
 
-/* ---------- sample data（固定シードで毎回同じ内容） ---------- */
-function rng32(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
-function sampleDB() {
-  let r = rng32(SEED);
-  const stores = [
-    { id: 's1', name: 'デラックスセブン', lendPer1000: 47, exchX10: 50, dailyLimit: 470, initSaved: 0, main: true, card: typeof CARD_MAIN === 'string' ? CARD_MAIN : '' }
-  ];
-  const machines = [
-    { id: 'm1', name: 'スマスロ北斗の拳', maker: 'サミー', type: 'スマスロ・AT', fav: true },
-    { id: 'm2', name: 'L 東京喰種', maker: 'スパイキー', type: 'スマスロ・AT', fav: true },
-    { id: 'm3', name: 'パチスロ 甲鉄城のカバネリ', maker: 'サミー', type: '6.5号機・AT', fav: false },
-    { id: 'm4', name: 'スマスロ モンキーターンV', maker: '山佐', type: 'スマスロ・AT', fav: false },
-    { id: 'm5', name: 'マイジャグラーV', maker: '北電子', type: '6号機・ノーマル', fav: true },
-    { id: 'm6', name: 'Lパチスロ 革命機ヴァルヴレイヴ', maker: 'SANKYO', type: 'スマスロ・AT', fav: false }
-  ];
-  const memos = ['朝イチ、リセット狙いで着席。前日の最終ゲーム数を確認してから座った。', '天井まで残り200G台を拾う。AT終了後は即やめ。', '終了画面で高設定示唆が出たので続行。小役は設定4の近似値。', '夕方から。ゾーン手前の空き台を2台はしご。', '予算上限に達したので撤退。深追いしない。'];
-  const bal = { s1: 0 }, sessions = [];
-  const today = new Date(); today.setHours(0, 0, 0, 0);
-  const d0 = new Date(2026, 5, 20), nDays = Math.round((today - d0) / 864e5);
-  for (let k = 0; k < nDays; k++) {
-    const d = new Date(d0); d.setDate(d.getDate() + k); r = rng32(SEED * 7919 + k);
-    const wd = d.getDay();
-    if (r() > (wd === 0 || wd === 6 ? 0.7 : 0.28)) continue;
-    r(); const st = stores[0];
-    const want = r() < 0.5 ? 1 : r() < 0.75 ? 2 : 3;
-    let avail = 0, usedSaved = 0; const plays = [];
-    for (let i = 0; i < want; i++) {
-      const mc = machines[Math.floor(r() * r() * machines.length * 1.6) % machines.length];
-      let carryIn = 0, savedIn = 0, cash = 0;
-      if (i > 0 && avail > 0) carryIn = avail;
-      else if (bal[st.id] >= 150 && r() < 0.6) { savedIn = Math.min(bal[st.id], 50 * Math.ceil(r() * 10), st.dailyLimit - usedSaved); bal[st.id] -= savedIn; usedSaved += savedIn; }
-      if (carryIn + savedIn < 300 || r() < 0.3) cash = 1000 * Math.ceil(r() * r() * 22 + 1);
-      const inM = Calc.lent(cash, st.lendPer1000) + carryIn + savedIn;
-      const q0 = r(), u = r();
-      const out = Math.round(inM * (q0 < 0.40 ? 0 : q0 < 0.60 ? 0.2 + u * 0.7 : q0 < 0.82 ? 0.9 + u * 0.9 : q0 < 0.95 ? 1.8 + u * 1.7 : 3.5 + u * 3));
-      avail = avail - carryIn + out;
-      plays.push({ machineId: mc.id, cash, savedIn, carryIn, out, minutes: 30 + Math.round(r() * 17) * 10 });
-      if (out === 0 && r() < 0.4) break;
-    }
-    let deposit = 0;
-    if (avail > 0) { const q = r(); if (q < 0.3) deposit = avail; else if (q < 0.45 && avail > 300) deposit = Math.floor(avail / 100) * 50; }
-    bal[st.id] += deposit;
-    sessions.push({
-      id: uid(), date: ymd(d), storeId: st.id, lendPer1000: st.lendPer1000, exchX10: st.exchX10, plays, deposit,
-      cashOut: Calc.autoCashOut(avail, deposit, st.exchX10), expense: r() < 0.35 ? 440 : 0, memo: r() < 0.3 ? memos[Math.floor(r() * memos.length)] : ''
-    });
-  }
-  const big = sessions.filter(x => x.cashOut >= 6000).slice(-2)[0];
-  if (big) big.cashOut -= 1500;                       // 換金額が計算より少ない例
-  const last = sessions[sessions.length - 1];
-  if (last) { const before = JSON.parse(JSON.stringify(last)); before.plays[0].cash = Math.max(0, before.plays[0].cash - 1000); delete before.history; last.history = [{ at: new Date(last.date + 'T21:40:00').getTime(), before }]; }
-  return { stores, machines, sessions };
-}
-const SEED = 46;
+/* ---------- 最初から入っている機種（あとから追加できる） ---------- */
+const MACHINES0 = [
+  { id: 'm1', name: 'スマスロ北斗の拳', maker: 'サミー', type: 'スマスロ・AT' },
+  { id: 'm2', name: 'L 東京喰種', maker: 'スパイキー', type: 'スマスロ・AT' },
+  { id: 'm3', name: 'パチスロ 甲鉄城のカバネリ', maker: 'サミー', type: '6.5号機・AT' },
+  { id: 'm4', name: 'スマスロ モンキーターンV', maker: '山佐', type: 'スマスロ・AT' },
+  { id: 'm5', name: 'マイジャグラーV', maker: '北電子', type: '6号機・ノーマル' },
+  { id: 'm6', name: 'Lパチスロ 革命機ヴァルヴレイヴ', maker: 'SANKYO', type: 'スマスロ・AT' }
+];
 
-/* ---------- 端末内保存（自分の記録だけを保存。サンプルは保存しない） ---------- */
+/* ---------- 端末内保存 ---------- */
 const KEY = 'dx7-shushi.v1';
 const store = { ok: true, last: '', savedAt: 0, backupAt: 0 };
 function newMine() {
   return {
     stores: [{ id: 's1', name: 'デラックスセブン', lendPer1000: 47, exchX10: 50, dailyLimit: 470, initSaved: 0, main: true, card: typeof CARD_MAIN === 'string' ? CARD_MAIN : '' }],
-    machines: sampleDB().machines.map(m => ({ ...m, fav: false })), sessions: []
+    machines: MACHINES0.map(m => ({ ...m, fav: false })), sessions: []
   };
 }
 function pack() {   // 同梱のカード画像は保存データに含めない（容量の節約）
   const m = mine && { ...mine, stores: mine.stores.map(st => (st.card === CARD_MAIN ? { ...st, card: '', cardDefault: true } : st)) };
-  return JSON.stringify({ v: 1, mode: S.mode, settings: { budget: S.budget, look2: S.look }, mine: m });
+  return JSON.stringify({ v: 1, settings: { budget: S.budget }, mine: m });
 }
 function persist() {
   stamp++;
@@ -133,7 +88,7 @@ function restore() {
    書き込むときは「読んだ時点から変わっていなければ」という条件を付け、変わっていたら読み直して合わせ直す。 */
 const CLOUD = { apiKey: 'AIzaSyCjAvsr4AHM8LdULAgbxKUXdtpcbbRjJRE', projectId: 'tabearuki-c5c7b' };   // 接続用の値（公開されて問題ないもの）。守りは Firebase 側のルール
 const EP = Object.assign({ auth: 'https://identitytoolkit.googleapis.com/v1', token: 'https://securetoken.googleapis.com/v1', store: 'https://firestore.googleapis.com/v1' }, window.__DX7_SYNC || {});
-const CAN_SYNC = !!document.querySelector('link[rel="manifest"]');   // 公開ページでだけ使う（試作ページからは外へ通信できない）
+const CAN_SYNC = !!document.querySelector('link[rel="manifest"]');   // 公開ページでだけ使う（プレビュー用のページからは外へ通信できない）
 const SKEY = 'dx7-shushi.sync.v1', SAFE = 'dx7-shushi.before-sync.v1', DOC_LIMIT = 900000, STORE_KEYS = ['lendPer1000', 'exchX10', 'dailyLimit', 'initSaved'];
 let sy = { uid: '', email: '', refresh: '', id: '', exp: 0, base: null, baseUid: '', at: 0, err: '', bytes: 0 };
 let syBusy = false, syAgain = false, syTimer = 0, syFail = 0, syMemo = { key: null, base: null, pending: false };
@@ -242,7 +197,7 @@ function cloudMsg(code) {
 }
 
 /* ---------- バックアップ（手動で書き出し・復元） ---------- */
-let DL = null;   // 試作ページ上でのファイル保存の窓口（無い環境では null のまま）
+let DL = null;   // プレビュー用のページ上でのファイル保存の窓口（無い環境では null のまま）
 try { window.claude?.use?.('downloads').then(x => { DL = x || null; }, () => {}); } catch (_) {}
 function backupText() {
   const m = { ...mine, stores: mine.stores.map(st => (st.card === CARD_MAIN ? { ...st, card: '', cardDefault: true } : st)) };
@@ -352,10 +307,8 @@ function historyHTML(s) {
   return `<button class="histbtn" data-act="toggleHist" data-id="${s.id}" aria-expanded="${open}">変更履歴 ${hs.length}件 ${open ? '▴' : '▾'}</button>` + (open ? `<div class="hist">${hs.map((e, i) => { const after = hs[i + 1] ? hs[i + 1].before : s, lines = Calc.diffSession(e.before, after, name); return `<div class="he"><b>${fmtTime(e.at)} に修正</b>${lines.length ? lines.map(esc).join('<br>') : '内容の変更なし'}</div>`; }).reverse().join('')}</div>` : '');
 }
 const basisLabel = () => (S.basis === 'eval' ? 'メダル評価込み' : '現金のみ');
-const lookSeg = () => `<span class="lookseg" role="group" aria-label="外観">${[['dark', '黒'], ['light', '白']].map(([k, l]) => `<button data-act="theme" data-t="${k}" aria-pressed="${S.look === k}" aria-label="${l}の外観">${l}</button>`).join('')}</span>`;
-const topRight = () => `<span class="top-r">${lookSeg()}${modePill()}</span>`;
+const topRight = () => `<span class="top-r">${modePill()}</span>`;
 function modePill() {
-  if (S.mode === 'sample') return '<button class="pill warn" data-pill data-act="tab" data-tab="more">サンプル表示中</button>';
   const k = syncState(); if (k !== 'off') return `<button class="pill${k === 'err' ? ' neg' : k === 'pending' ? ' warn' : ''}" data-pill data-act="syncSheet">${SY_LABEL[k]}</button>`;
   return store.ok ? '<span class="pill" data-pill>この端末に保存</span>' : '<span class="pill neg" data-pill>保存できません</span>';
 }
@@ -365,13 +318,13 @@ const views = {
   home() {
     const t = TODAY(), m = t.slice(0, 7), dt = pdate(t), B = S.basis;
     const head = `<header class="top"><div><p class="eyebrow">${dt.getFullYear()}年${dt.getMonth() + 1}月${dt.getDate()}日（${WD[dt.getDay()]}）</p><h1>ホーム</h1></div>${topRight()}</header>`;
-    const sampleBar = S.mode === 'sample' ? '<button class="banner tap" data-act="askMine">サンプルの数字を表示しています。<b>自分の記録を始める ›</b></button>' : !store.ok ? '<p class="banner err">このブラウザでは記録を保存できません。プライベートブラウズを解除するか、別のブラウザで開いてください。</p>' : '';
-    if (!db.sessions.length) return head + memberBlock() + sampleBar + draftBar() + `<div class="empty"><b>まだ記録がありません</b><p>実戦を記録すると、今月の収支・貯メダル残高・推移がここに並びます。</p><button class="btn primary" data-act="tab" data-tab="add">最初の実戦を記録する</button>${S.mode === 'mine' ? `<button class="btn line" data-act="editStore" data-id="${mainStore().id}">いまの貯メダル残高を登録する</button>` : ''}</div>`;
+    const saveBar = store.ok ? '' : '<p class="banner err">このブラウザでは記録を保存できません。プライベートブラウズを解除するか、別のブラウザで開いてください。</p>';
+    if (!db.sessions.length) return head + memberBlock() + saveBar + draftBar() + `<div class="empty"><b>まだ記録がありません</b><p>実戦を記録すると、今月の収支・貯メダル残高・推移がここに並びます。</p><button class="btn primary" data-act="tab" data-tab="add">最初の実戦を記録する</button><button class="btn line" data-act="editStore" data-id="${mainStore().id}">いまの貯メダル残高を登録する</button></div>`;
     const all = Calc.stats(db.sessions, B), mon = Calc.stats(inMonth(m), B), prev = Calc.stats(inMonth(addMonth(m, -1)), B), td = Calc.stats(db.sessions.filter(s => s.date === t), B);
     const use = S.budget > 0 ? mon.cash / S.budget : 0, left = S.budget - mon.cash;
     const recent = all.days.slice(-5).reverse();
     const nf2 = flagged().length, auditBar = nf2 ? `<button class="banner tap" data-act="auditSheet">二重チェックで確認したい記録が ${nf2}件あります。<b>内容を見る ›</b></button>` : '';
-    return head + memberBlock() + sampleBar + draftBar() + auditBar + `
+    return head + memberBlock() + saveBar + draftBar() + auditBar + `
     <section class="hero">
       <div class="lab"><span>${dt.getMonth() + 1}月の収支</span><span class="pill">メダル評価込み</span></div>
       <div class="big">${Y(mon.result, { arrow: true })}</div>
@@ -479,12 +432,10 @@ const views = {
   more() {
     const bal = Calc.balances(db.stores, db.sessions), mach = new Map(Calc.byMachine(db.sessions).map(r => [r.id, r]));
     return `<header class="top"><div><p class="eyebrow">設定・マスタ</p><h1>その他</h1></div>${topRight()}</header>
-    <section class="card"><header><h2>表示するデータ</h2><span class="sub">${db.sessions.length}件</span></header>
-      <div class="seg" role="group" aria-label="表示するデータ"><button data-act="${mine ? 'useMine' : 'askMine'}" aria-pressed="${S.mode === 'mine'}">自分の記録</button><button data-act="useSample" aria-pressed="${S.mode === 'sample'}">サンプル</button></div>
-      <p class="note">${S.mode === 'mine' ? (store.ok ? `この端末（このブラウザ）に保存しています${store.savedAt ? `。最終保存 ${fmtTime(store.savedAt)}` : ''}。` : 'このブラウザでは保存できません。') : 'サンプルは保存されません。再読み込みすると最初の状態に戻ります。' + (mine ? '' : '「自分の記録」を選ぶと、空の状態から記録を始められます。')}</p>
-      ${S.mode === 'mine' ? `<div class="grid2"><button class="btn line sm" data-act="backup">バックアップと復元</button><button class="btn danger sm" data-act="askWipe">すべて消す</button></div>
-      <p class="note">${store.backupAt ? `最後のバックアップ ${fmtTime(store.backupAt)}。` : 'まだバックアップしていません。'}${sy.uid ? 'クラウドにも保存していますが、念のため、ときどき書き出しておくと安心です。' : '端末の中だけに保存しているので、機種変更や故障に備えて、ときどき書き出してください。'}</p>`
-        : `<div class="grid2"><button class="btn line sm" data-act="askReset">サンプルに戻す</button><button class="btn line sm" data-act="askClear">サンプルを空にする</button></div><button class="btn line sm" data-act="backup">バックアップから復元</button>`}
+    <section class="card"><header><h2>記録の保存</h2><span class="sub">${db.sessions.length}件</span></header>
+      <p class="note">${store.ok ? `この端末（このブラウザ）に保存しています${store.savedAt ? `。最終保存 ${fmtTime(store.savedAt)}` : ''}。` : 'このブラウザでは保存できません。'}</p>
+      <div class="grid2"><button class="btn line sm" data-act="backup">バックアップと復元</button><button class="btn danger sm" data-act="askWipe">すべて消す</button></div>
+      <p class="note">${store.backupAt ? `最後のバックアップ ${fmtTime(store.backupAt)}。` : 'まだバックアップしていません。'}${sy.uid ? 'クラウドにも保存していますが、念のため、ときどき書き出しておくと安心です。' : '端末の中だけに保存しているので、機種変更や故障に備えて、ときどき書き出してください。'}</p>
       <p class="note">${sy.uid ? 'ブラウザのデータを消しても、同じメールアドレスでログインし直せば記録は戻ります。' : 'ブラウザのデータを消すと、記録も消えます。下の「同期」でログインしておくと、クラウドにも残ります。'}</p></section>
     <section class="card"><header><h2>同期</h2><span class="sub">${sy.uid ? esc(sy.email) : ''}</span></header>
       <p class="note">${sy.uid ? `クラウドにも保存しています。${sy.at ? `最後の同期 ${fmtTime(sy.at)}。` : ''}${sy.err ? esc(cloudMsg(sy.err)) : pendingLocal() ? 'まだ送っていない変更があります。' : ''}` : sy.err === 'RELOGIN' ? esc(cloudMsg('RELOGIN')) : 'ログインすると、記録をクラウドにも保存します。iPhone が壊れても、別の端末でログインすれば同じ記録が戻ります。'}</p>
@@ -507,8 +458,6 @@ const views = {
       <p class="note">ホームの「今月の現金投資」に反映されます。80%を超えると注意、100%で超過と表示します。</p></section>
     <section class="card"><header><h2>機種</h2><span class="sub">★はお気に入り</span></header>
       <div class="list">${db.machines.map(mc => { const r = mach.get(mc.id); return `<div class="item" style="grid-template-columns:auto minmax(0,1fr) auto"><button data-act="fav" data-id="${mc.id}" aria-label="${esc(mc.name)}をお気に入り${mc.fav ? 'から外す' : 'に追加'}" aria-pressed="${mc.fav}" style="width:36px;height:44px;font-size:18px;color:${mc.fav ? 'var(--gold)' : 'var(--fg-3)'}">${mc.fav ? '★' : '☆'}</button><span><span class="tt">${esc(mc.name)}</span><span class="ss">${esc([mc.maker, mc.type].filter(Boolean).join('・') || '分類未設定')}</span></span><span class="rr">${r ? Y(r.yen) : '<span class="muted">—</span>'}<small>${r ? r.n : 0}回</small></span></div>`; }).join('')}</div></section>
-    <section class="card"><header><h2>外観</h2></header>
-      <div class="seg" role="group" aria-label="外観">${[['dark', '黒（標準）'], ['light', '白']].map(([k, l]) => `<button data-act="theme" data-t="${k}" aria-pressed="${S.look === k}">${l}</button>`).join('')}</div></section>
 `;
   }
 };
@@ -522,7 +471,7 @@ const draftKey = () => (S.draft && S.draft.id ? EKEY : DKEY);
 function readDraft(key) {
   try {
     const o = JSON.parse(localStorage.getItem(key) || 'null');
-    if (!o || o.mode !== S.mode || !o.draft || !Array.isArray(o.draft.plays) || !o.draft.plays.length) return null;
+    if (!o || !o.draft || !Array.isArray(o.draft.plays) || !o.draft.plays.length) return null;
     if (key === EKEY ? !db.sessions.some(x => x.id === o.draft.id) : o.draft.id) return null;
     const d = o.draft, have = new Set(db.machines.map(m => m.id));
     o.draft = { id: d.id || null, date: /^\d{4}-\d{2}-\d{2}$/.test(d.date) ? d.date : TODAY(), storeId: d.storeId || mainStore()?.id || '',
@@ -533,7 +482,7 @@ function readDraft(key) {
 }
 function saveDraft(open = true) {
   if (!S.draft || S.sheet?.type !== 'entry') return;
-  try { if (JSON.stringify(S.draft) !== draft0) localStorage.setItem(draftKey(), JSON.stringify({ at: Date.now(), mode: S.mode, open, back: !!S.back, draft: S.draft })); } catch (_) {}
+  try { if (JSON.stringify(S.draft) !== draft0) localStorage.setItem(draftKey(), JSON.stringify({ at: Date.now(), open, back: !!S.back, draft: S.draft })); } catch (_) {}
 }
 const dropDraft = key => { try { localStorage.removeItem(key); } catch (_) {} };
 function resumeDraft(o) { S.draft = o.draft; draft0 = ''; S.back = o.draft.id ? !!o.back : null; S.tried = false; S.sheet = { type: 'entry' }; S.enter = true; renderSheet(); saveDraft(); }
@@ -580,7 +529,7 @@ const sheets = {
   sync() {
     const f = S.sy, on = !!sy.uid; let safe = null; try { safe = JSON.parse(localStorage.getItem(SAFE) || 'null'); } catch (_) {}
     const head = `<header class="sh-head"><button data-act="closeSheet" aria-label="閉じる">${svg('close')}</button><h2>同期</h2><span></span></header>`;
-    if (!CAN_SYNC) return head + '<div class="sh-body"><section class="card"><p class="note">同期は、公開しているアプリ（ホーム画面に追加したもの）で使えます。この試作ページからは、外へ通信できません。</p></section></div>';
+    if (!CAN_SYNC) return head + '<div class="sh-body"><section class="card"><p class="note">同期は、公開しているアプリ（ホーム画面に追加したもの）で使えます。このプレビュー用のページからは、外へ通信できません。</p></section></div>';
     const msg = (f.err ? `<p class="banner err" role="alert">${esc(f.err)}</p>` : '') + (f.msg ? `<p class="banner" role="status">${esc(f.msg)}</p>` : '');
     if (!on) return head + `<div class="sh-body">
       <section class="card"><header><h2>ログイン</h2></header>
@@ -738,13 +687,13 @@ const sheets = {
     return `<header class="sh-head"><button data-act="closeSheet" aria-label="閉じる">${svg('close')}</button><h2>バックアップと復元</h2><span></span></header>
     <div class="sh-body">
       <section class="card"><header><h2>書き出す</h2><span class="sub">${has ? `記録 ${n}件` : ''}</span></header>
-        ${has ? `<p class="note">自分の記録${n ? `（${fmtMD(dates[0])}〜${fmtMD(dates[n - 1])}）` : ''}・機種・条件を、1つのファイルにまとめます。${store.backupAt ? `最後のバックアップ ${fmtTime(store.backupAt)}。` : ''}</p>
+        ${has ? `<p class="note">記録${n ? `（${fmtMD(dates[0])}〜${fmtMD(dates[n - 1])}）` : ''}・機種・条件を、1つのファイルにまとめます。${store.backupAt ? `最後のバックアップ ${fmtTime(store.backupAt)}。` : ''}</p>
         <div class="grid2"><button class="btn primary sm" data-act="exportFile">ファイルに保存</button><button class="btn line sm" data-act="copyBackup">テキストをコピー</button></div>
         ${sh.text ? `<label class="field" for="bk-out"><span class="flabel">コピーできなかったときは、下を全選択してコピーしてください</span><textarea id="bk-out" class="mono" readonly rows="5">${esc(sh.text)}</textarea></label>` : ''}`
-          : '<p class="note">自分の記録がまだありません。ホームの「自分の記録を始める」から始めると、ここから書き出せます。</p>'}
+          : ''}
       </section>
       <section class="card"><header><h2>復元する</h2></header>
-        <p class="note">${has ? `いまの自分の記録 ${n}件を、バックアップの内容でまるごと置き換えます。` : 'バックアップの内容を、自分の記録として読み込みます。'}サンプルには影響しません。</p>
+        <p class="note">${has ? `いまの記録 ${n}件を、バックアップの内容でまるごと置き換えます。` : 'バックアップの内容を読み込みます。'}</p>
         <label class="btn line sm" for="bk-file">バックアップのファイルを選ぶ</label><input id="bk-file" type="file" accept=".json,application/json,text/plain" style="position:absolute;opacity:0;width:1px;height:1px">
         <label class="field" for="bk-in"><span class="flabel">または、コピーしたテキストを貼り付ける</span><textarea id="bk-in" class="mono" rows="4" autocomplete="off" autocapitalize="off" spellcheck="false"></textarea></label>
         <button class="btn line sm" data-act="readPasted">貼り付けた内容を読み込む</button>
@@ -838,7 +787,7 @@ function loadBackup(text) {
   if (r.error) { S.sheet.error = r.error; renderSheet(); return; }
   S.sheet.error = ''; S.incoming = r;
   const when = r.exportedAt && !isNaN(Date.parse(r.exportedAt)) ? fmtTime(Date.parse(r.exportedAt)) + ' に書き出した' : '';
-  S.confirm = { title: 'このバックアップで置き換えますか？', msg: `${when}バックアップ（記録 ${r.data.sessions.length}件${r.skipped ? `・読めなかった記録 ${r.skipped}件は除外` : ''}）を読み込みます。${mine ? `いまの自分の記録 ${mine.sessions.length}件は置き換えられます。` : ''}直後なら「元に戻す」で戻せます。`, ok: '置き換える', act: 'doRestore', danger: !!(mine && mine.sessions.length) };
+  S.confirm = { title: 'このバックアップで置き換えますか？', msg: `${when}バックアップ（記録 ${r.data.sessions.length}件${r.skipped ? `・読めなかった記録 ${r.skipped}件は除外` : ''}）を読み込みます。${mine ? `いまの記録 ${mine.sessions.length}件は置き換えられます。` : ''}直後なら「元に戻す」で戻せます。`, ok: '置き換える', act: 'doRestore', danger: !!(mine && mine.sessions.length) };
   renderOverlay();
 }
 let toastTimer;
@@ -847,7 +796,6 @@ function toast(msg, label, act) {
   clearTimeout(toastTimer); toastTimer = setTimeout(() => { $('#toast').innerHTML = ''; }, label ? 6000 : 2200);
 }
 const closeSheet = () => { S.sheet = null; S.draft = null; S.picker = null; };
-function applyTheme() { document.documentElement.dataset.theme = S.look === 'light' ? 'light' : 'dark'; }
 function commit(force) {
   const d = S.draft, s = draftSession(); S.tried = true;
   const v = Calc.validate(s, vopts());
@@ -875,7 +823,6 @@ function commit(force) {
 const A = {
   tab(el) { if (el.dataset.tab === 'add') { const o = readDraft(DKEY); if (S.draft && S.sheet?.type === 'entry') return; S.back = null; return o ? resumeDraft(o) : openEntry(); } closeSheet(); S.tab = el.dataset.tab; if (S.tab === 'cal') S.cal = S.cal || TODAY().slice(0, 7); render(); },
   period(el) { S.period = el.dataset.p; render(); },
-  theme(el) { S.look = el.dataset.t; applyTheme(); render(); },
   calMove(el) { if (el.disabled) return; S.cal = addMonth(S.cal, +el.dataset.k); render(); },
   day(el) { S.sheet = { type: 'day', date: el.dataset.date }; S.enter = true; renderSheet(); },
   toggleHist(el) { S.sheet.hist = S.sheet.hist === el.dataset.id ? null : el.dataset.id; renderSheet(); },
@@ -910,7 +857,7 @@ const A = {
     f.busy = true; renderSheet();
     try { setSession(await authPost(op, { email, password: f.pw, returnSecureToken: true })); }
     catch (e) { f.busy = false; f.err = cloudMsg(e.code); return renderSheet(); }
-    f.busy = false; f.pw = ''; if (!mine) mine = newMine(); if (S.mode !== 'mine') { db = mine; S.mode = 'mine'; S.cal = TODAY().slice(0, 7); }
+    f.busy = false; f.pw = '';
     render(); await syncNow(true);
   },
   syLogin() { return A.syAuth('signInWithPassword'); },
@@ -948,15 +895,8 @@ const A = {
     Object.assign(storeOf(d.id), { lendPer1000: lend, exchX10: exch, dailyLimit: Calc.n(d.limit), initSaved: Calc.n(d.init), card: d.card });
     A.closeStore(); toast('条件を保存しました');
   },
-  askMine() { S.confirm = { title: '自分の記録を始めますか？', msg: 'サンプルとは別に、空の状態から記録を始めます。記録はこの端末（このブラウザ）に保存されます。サンプルは「その他」からいつでも見られます。', ok: '始める', act: 'useMine' }; renderOverlay(); },
-  useMine() { const first = !mine; if (first) mine = newMine(); try { navigator.storage && navigator.storage.persist && navigator.storage.persist().catch(() => {}); } catch (_) {} db = mine; S.mode = 'mine'; S.confirm = null; S.undo = null; closeSheet(); if (first) S.tab = 'home'; S.cal = TODAY().slice(0, 7); render(); toast(first ? '自分の記録を作成しました' : '自分の記録を表示しています'); },
-  useSample() { if (S.mode === 'sample') return; sample = sample || sampleDB(); db = sample; S.mode = 'sample'; S.undo = null; closeSheet(); S.cal = TODAY().slice(0, 7); render(); toast('サンプルを表示しています'); },
-  askReset() { S.confirm = { title: 'サンプルを最初の状態に戻しますか？', msg: 'サンプルの記録・機種・条件を作り直します。自分の記録には影響しません。', ok: '戻す', act: 'doReset' }; renderOverlay(); },
-  doReset() { sample = sampleDB(); db = sample; S.mode = 'sample'; S.confirm = null; S.undo = null; closeSheet(); S.cal = TODAY().slice(0, 7); render(); toast('サンプルを最初の状態に戻しました'); },
-  askClear() { S.confirm = { title: 'サンプルの記録を空にしますか？', msg: '記録が0件のときの表示を確認できます。自分の記録には影響しません。', ok: '空にする', act: 'doClear' }; renderOverlay(); },
-  doClear() { sample = sample || sampleDB(); sample.sessions = []; db = sample; S.mode = 'sample'; S.confirm = null; S.undo = null; closeSheet(); render(); toast('サンプルを空にしました'); },
-  askWipe() { if (S.mode !== 'mine') return; S.confirm = { title: `自分の記録 ${mine.sessions.length}件をすべて消しますか？`, msg: '実戦の記録をすべて削除します。機種と条件は残ります。消した直後なら「元に戻す」で復元できますが、ページを閉じると戻せません。', ok: 'すべて消す', act: 'doWipe', danger: true }; renderOverlay(); },
-  doWipe() { if (S.mode !== 'mine') return; const m = mine, prev = m.sessions; m.sessions = []; S.undo = () => { m.sessions = prev; }; S.confirm = null; closeSheet(); render(); toast('自分の記録を消しました', '元に戻す', 'undo'); },
+  askWipe() { S.confirm = { title: `記録 ${mine.sessions.length}件をすべて消しますか？`, msg: '実戦の記録をすべて削除します。機種と条件は残ります。消した直後なら「元に戻す」で復元できますが、ページを閉じると戻せません。', ok: 'すべて消す', act: 'doWipe', danger: true }; renderOverlay(); },
+  doWipe() { const m = mine, prev = m.sessions; m.sessions = []; S.undo = () => { m.sessions = prev; }; S.confirm = null; closeSheet(); render(); toast('記録をすべて消しました', '元に戻す', 'undo'); },
   backup() { S.sheet = { type: 'backup', text: '', error: '' }; S.enter = true; renderSheet(); },
   exportFile() {
     if (!mine) return; const text = backupText(), name = backupName();
@@ -971,9 +911,9 @@ const A = {
   },
   readPasted() { loadBackup(($('#bk-in') || {}).value || ''); },
   doRestore() {
-    const inc = S.incoming; if (!inc) return; const prev = { mine, mode: S.mode, budget: S.budget };
-    mine = inc.data; db = mine; S.mode = 'mine'; if (inc.budget) S.budget = inc.budget; S.incoming = null; S.confirm = null;
-    S.undo = () => { mine = prev.mine; S.mode = prev.mine && prev.mode === 'mine' ? 'mine' : 'sample'; S.budget = prev.budget; if (S.mode === 'mine') db = mine; else { sample = sample || sampleDB(); db = sample; } };
+    const inc = S.incoming; if (!inc) return; const prev = { mine, budget: S.budget };
+    mine = inc.data; db = mine; if (inc.budget) S.budget = inc.budget; S.incoming = null; S.confirm = null;
+    S.undo = () => { mine = prev.mine; db = mine; S.budget = prev.budget; };
     closeSheet(); S.tab = 'home'; S.cal = TODAY().slice(0, 7); render(); toast(`記録 ${mine.sessions.length}件を復元しました`, '元に戻す', 'undo');
   }
 };
@@ -1026,16 +966,15 @@ function fit() { const w = $('.device-wrap'); if (matchMedia('(max-width:860px)'
 function tick() { const d = new Date(); $('#clock').textContent = `${d.getHours()}:${pad(d.getMinutes())}`; }
 function start(data) {
   const saved = restore(), keep = (data && data.S) || {}; loadSy();
-  S = Object.assign({ tab: 'home', period: 'all', cal: TODAY().slice(0, 7) }, keep, { basis: 'eval', mode: 'sample', budget: 80000, look: 'dark' },
-    saved ? { mode: saved.mode === 'mine' && saved.mine ? 'mine' : 'sample', budget: Calc.n(saved.settings?.budget) || 80000, look: saved.settings?.look2 === 'light' ? 'light' : 'dark' } : {},
+  S = Object.assign({ tab: 'home', period: 'all', cal: TODAY().slice(0, 7) }, keep, { basis: 'eval', budget: saved ? Calc.n(saved.settings?.budget) || 80000 : 80000 },
     { sheet: null, draft: null, picker: null, confirm: null, sd: null, undo: null, back: null, pending: null, tried: false, enter: false });
-  mine = saved ? saved.mine : null;
-  if (S.mode === 'mine') db = mine; else { sample = sampleDB(); db = sample; }
-  applyTheme(); fit(); tick(); render();
+  mine = (saved && saved.mine) || newMine(); db = mine;
+  try { navigator.storage && navigator.storage.persist && navigator.storage.persist().catch(() => {}); } catch (_) {}   // ブラウザに「勝手に消さないで」と頼んでおく
+  fit(); tick(); render();
   const de = readDraft(EKEY), dn = readDraft(DKEY), dr = de && de.open ? de : dn && dn.open ? dn : null;
   if (!de) dropDraft(EKEY);
   if (dr) { resumeDraft(dr); render(); toast('入力途中の内容を復元しました'); }
-  if (store.broken) toast('保存データを読み込めなかったため、サンプルを表示しています');
+  if (store.broken) toast('保存データを読み込めなかったため、空の状態で開いています');
   scheduleSync(400);
 }
 addEventListener('resize', fit); setInterval(tick, 20000);

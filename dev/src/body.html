@@ -1,9 +1,9 @@
 <div class="stage">
-  <aside class="notes" aria-label="デモ1について">
+  <aside class="notes" aria-label="このページについて">
     <div>
-      <p class="eyebrow">デモ1 ／ 操作できる試作</p>
-      <h1>パチスロ収支アプリ</h1>
-      <p class="lede">右の画面は実際に動きます。記録の追加・編集・削除、入力中の自動計算、カレンダー、分析まで一通り触れます。最初はサンプルを表示します。「自分の記録を始める」に切り替えると、空の状態から記録でき、この端末に保存されます。</p>
+      <p class="eyebrow">プレビュー</p>
+      <h1>パチスロ収支</h1>
+      <p class="lede">右の画面は、公開しているアプリと同じものです。記録の追加・編集・削除、入力中の自動計算、カレンダー、分析まで実際に動きます。このページで入れた記録は、このページの中だけに保存されます（公開しているアプリの記録とは別です）。</p>
     </div>
     <section>
       <h2>画面を開く</h2>
@@ -14,13 +14,6 @@
         <button class="btn line sm" data-act="tab" data-tab="stats">分析</button>
         <button class="btn line sm" data-act="tab" data-tab="more">その他</button>
         <button class="btn line sm" data-act="rules">計算ルール</button>
-      </div>
-    </section>
-    <section>
-      <h2>見た目を切り替える</h2>
-      <div class="row">
-        <button class="btn line sm" data-act="theme" data-t="dark">黒バージョン</button>
-        <button class="btn line sm" data-act="theme" data-t="light">白バージョン</button>
         <button class="btn line sm" data-act="auditSheet">二重チェック</button>
       </div>
     </section>
@@ -36,39 +29,21 @@
         <li><b>勝率</b>：日単位で判定し、引き分けも分母に入れる。経費は勝敗に含めない。</li>
         <li><b>換金額の自動計算</b>：100円単位で切り捨て。手入力で上書きできる。</li>
         <li><b>時給・回収率</b>：時給は遊技時間を入れた記録だけで計算。回収率は（投資＋収支）÷投資。</li>
-        <li><b>参考値の表示</b>：付けない。機種別・曜日別には回数だけを添える。</li>
         <li><b>二重チェック</b>：台別の合計と1日の収支の照合、二重計上の疑い、換金額の差、入力の矛盾を自動で調べる。修正前後の履歴を残す。</li>
-        <li><b>保存先</b>：端末内に保存し、ログインするとクラウド（Firebase）にも同期する。サンプルと自分の記録は別々に持つ。手動のバックアップも残す。</li>
-        <li><b>同期</b>：メール＋パスワードでログイン。記録1件ごとに、後から保存した方を残す。同期は公開ページでだけ動く（この試作ページからは通信できない）。</li>
-        <li><b>置き場所</b>：GitHub Pages に置き、iPhone のホーム画面に追加して使う。</li>
-        <li><b>見た目</b>：黒が標準。数字はプラスもマイナスも同じ色で、符号と▲▼で区別する。白バージョンにも切り替えられる。</li>
-        <li><b>数字のフォント</b>：Rajdhani に固定。</li>
-        <li><b>カレンダー</b>：1日のマスは正方形。</li>
-        <li><b>ホーム画面のアイコン</b>：会員カードのロゴの D・E・7 を「D7E」に組んだもの。</li>
-        <li><b>以前のアプリの記録</b>：取り込まない。このアプリの記録だけを使う。</li>
+        <li><b>保存先</b>：端末内に保存し、ログインするとクラウド（Firebase）にも同期する。手動のバックアップも残す。</li>
+        <li><b>同期</b>：メール＋パスワードでログイン。記録1件ごとに、後から保存した方を残す。公開しているアプリでだけ動く（このページからは通信できない）。</li>
         <li><b>入力途中の自動保存</b>：入力画面の内容は打つたびに端末へ保存。アプリが閉じても続きから入力できる。</li>
-      </ul>
-    </section>
-    <section>
-      <h2>まだ確認していないこと</h2>
-      <ul>
-        <li><b>貯メダルの上限を超えた入力</b>：注意ではなく、保存できない扱いにしている。</li>
-        <li><b>月間の現金投資上限</b>：最初の値を80,000円にしている（変更できる）。</li>
+        <li><b>見た目</b>：黒の1種類。数字はプラスもマイナスも同じ色で、符号と▲▼で区別する。</li>
+        <li><b>数字のフォント</b>：Rajdhani。<b>カレンダー</b>：1日のマスは正方形。</li>
+        <li><b>ホーム画面のアイコン</b>：会員カードのロゴの D・E・7 を「D7E」に組んだもの。</li>
       </ul>
     </section>
     <section>
       <h2>まだ入っていないもの</h2>
       <ul>
-        <li>写真、タグ、検索・絞り込み、CSV／JSONの入出力、通知</li>
-        <li>コード編集と連動する開発用プレビュー環境（技術選定のあとに構築）</li>
+        <li>機種の編集・削除、検索・絞り込み、過去の月・年の指定</li>
+        <li>写真、タグ、実戦メモの項目分け、CSV、通知、1日予算・月間目標</li>
       </ul>
-    </section>
-    <section>
-      <h2>サンプルの操作</h2>
-      <div class="row">
-        <button class="btn line sm" data-act="askReset">サンプルに戻す</button>
-        <button class="btn line sm" data-act="askClear">サンプルを空にして初期表示を見る</button>
-      </div>
     </section>
     <p class="meta">表示領域 402 × 874 pt（iPhone 17 Pro 相当）。スマートフォンで開くと枠なしの全画面で動きます。</p>
   </aside>

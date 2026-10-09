@@ -12,7 +12,6 @@ const root = path.join(__dirname, '..'); const DIST = path.join(root, 'dist'); c
   const reload = async () => { await p.reload(); await p.waitForTimeout(500); };
   const pick = async id => { await p.click('[data-act="pickMachine"][data-i="0"]'); await p.click(`[data-act="chooseMachine"][data-id="${id}"]`); };
   await p.goto(url); await p.waitForTimeout(500);
-  await p.click('[data-act="askMine"]'); await p.click('[data-act="useMine"]'); await p.waitForTimeout(200);
 
   // 1. 開いただけで何も打たずに閉じたら、何も残さない
   await p.click('#app [data-tab="add"]'); await p.waitForTimeout(400); await p.click('.sheet [data-act="closeSheet"]'); await p.waitForTimeout(400);

@@ -17,7 +17,7 @@ const root = path.join(__dirname, '..'); const DIST = path.join(root, 'dist');
   const edit = async (p, id, out) => { await closeSheets(p); await p.evaluate(i => { const s = __demo.db.sessions.find(x => x.id === i); __demo.S.sheet = { type: 'day', date: s.date }; }, id); await p.click('#app [data-tab="add"]'); await p.click('.sheet [data-act="closeSheet"]'); await p.waitForTimeout(100);
     await p.click('#app [data-tab="home"]'); await p.click(`#screen .list .item[data-act="day"]`); await p.waitForTimeout(200); await p.click(`[data-act="editRec"][data-id="${id}"]`); await p.waitForTimeout(250); await p.fill('#f-p-0-out', String(out)); await p.click('[data-act="save"]'); await p.waitForTimeout(250); await closeSheets(p); };
   const del = async (p, id) => { await closeSheets(p); await p.click('#app [data-tab="home"]'); await p.click(`#screen .list .item[data-act="day"]`); await p.waitForTimeout(200); await p.click(`[data-act="askDel"][data-id="${id}"]`); await p.click('[data-act="doDel"]'); await p.waitForTimeout(250); await closeSheets(p); };
-  const view = p => p.evaluate(() => ({ mode: __demo.S.mode, recs: (__demo.mine ? __demo.mine.sessions : []).map(s => s.id.slice(-4) + ':' + s.plays[0].out).sort().join(' '), state: __demo.syncState(), err: __demo.sy.err }));
+  const view = p => p.evaluate(() => ({ recs: (__demo.mine ? __demo.mine.sessions : []).map(s => s.id.slice(-4) + ':' + s.plays[0].out).sort().join(' '), state: __demo.syncState(), err: __demo.sy.err }));
   const recs = async p => (await view(p)).recs;
   const cloud = uid => { const c = mock.body(uid); return c ? c.sessions.map(s => s.id.slice(-4) + ':' + s.plays[0].out).sort().join(' ') : null; };
   const pill = p => p.evaluate(() => document.querySelector('#screen [data-pill]')?.textContent);
@@ -26,7 +26,7 @@ const root = path.join(__dirname, '..'); const DIST = path.join(root, 'dist');
   const A = await device('A');
   await auth(A, 'a@example.com', 'secret1', true);
   const uid = await A.evaluate(() => __demo.sy.uid);
-  check('1 登録直後', [await view(A), cloud(uid), await A.evaluate(() => document.querySelector('.sheet h2')?.textContent)], [{ mode: 'mine', recs: '', state: 'ok', err: '' }, '', '同期']);
+  check('1 登録直後', [await view(A), cloud(uid), await A.evaluate(() => document.querySelector('.sheet h2')?.textContent)], [{ recs: '', state: 'ok', err: '' }, '', '同期']);
 
   // ── 2. 記録を保存すると、何もしなくてもクラウドに届く
   await add(A, 'm1', 5000, 300); const r1 = await A.evaluate(() => __demo.mine.sessions[0].id);
@@ -37,7 +37,7 @@ const root = path.join(__dirname, '..'); const DIST = path.join(root, 'dist');
   // ── 3. 2台目でログインすると、同じ記録が出る
   const B = await device('B');
   await auth(B, 'a@example.com', 'secret1', false);
-  check('3 2台目', await view(B), { mode: 'mine', recs: r1.slice(-4) + ':300', state: 'ok', err: '' });
+  check('3 2台目', await view(B), { recs: r1.slice(-4) + ':300', state: 'ok', err: '' });
 
   // ── 4. 2台目で編集・追加 → 1台目に届く
   await edit(B, r1, 500); await add(B, 'm2', 2000, 0); await sync(B); const r2 = await B.evaluate(i => __demo.mine.sessions.find(s => s.id !== i).id, r1);
@@ -86,10 +86,10 @@ const root = path.join(__dirname, '..'); const DIST = path.join(root, 'dist');
   await C.fill('#sy-pw', 'secret1'); await C.click('[data-act="sySignup"]'); await C.waitForTimeout(400); const e2 = await C.evaluate(() => document.querySelector('.sheet .banner.err')?.textContent);
   await C.fill('#sy-email', 'new@example.com'); await C.fill('#sy-pw', '123'); await C.click('[data-act="sySignup"]'); await C.waitForTimeout(400); const e3 = await C.evaluate(() => document.querySelector('.sheet .banner.err')?.textContent);
   await C.fill('#sy-email', 'a@example.com'); await C.click('[data-act="syReset"]'); await C.waitForTimeout(400); const e4 = await C.evaluate(() => document.querySelector('.sheet .banner:not(.err)')?.textContent);
-  check('11 ログイン失敗の表示', [e1, (e2 || '').slice(0, 16), e3, (e4 || '').includes('メールを送りました'), M.resets, await C.evaluate(() => [__demo.sy.uid, __demo.S.mode])], ['メールアドレスかパスワードが違います。', 'このメールアドレスは登録済みです', 'パスワードは6文字以上にしてください。', true, ['a@example.com'], ['', 'sample']]);
+  check('11 ログイン失敗の表示', [e1, (e2 || '').slice(0, 16), e3, (e4 || '').includes('メールを送りました'), M.resets, await C.evaluate(() => [__demo.sy.uid, __demo.db.sessions.length])], ['メールアドレスかパスワードが違います。', 'このメールアドレスは登録済みです', 'パスワードは6文字以上にしてください。', true, ['a@example.com'], ['', 0]]);
 
   // ── 12. すでに記録のある端末でログイン → 端末の記録とクラウドの記録を合わせる
-  await closeSheets(C); await C.click('#app [data-tab="home"]'); await C.click('[data-act="askMine"]'); await C.click('[data-act="useMine"]'); await C.waitForTimeout(200); await add(C, 'm1', 4000, 888);
+  await closeSheets(C); await C.click('#app [data-tab="home"]'); await add(C, 'm1', 4000, 888);
   const nCloud = mock.body(uid).sessions.length; await auth(C, 'a@example.com', 'secret1', false);
   check('12 初回は足し合わせる', [(await recs(C)).includes(':888'), cloud(uid).includes(':888'), mock.body(uid).sessions.length, await recs(C) === cloud(uid)], [true, true, nCloud + 1, true]);
 
