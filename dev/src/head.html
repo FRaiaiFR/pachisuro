@@ -13,9 +13,9 @@
   --page:var(--stage);
   --font-jp:"Zen Kaku Gothic New","Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic UI","Noto Sans JP",system-ui,sans-serif;
   --font-num:"Rajdhani","Helvetica Neue","Arial Narrow",system-ui,sans-serif; --num-w:600; --num-s:1.04; --num-ls:.01em;
-  --safe-t:62px; --safe-b:22px; --top-pad:4px;
+  --safe-t:62px; --safe-b:34px; --top-pad:12px;
 }
-@media (max-width:860px){ :root{ --page:var(--bg); --safe-t:0px; --safe-b:0px; --top-pad:max(4px,calc(16px - env(safe-area-inset-top,0px))) } }
+@media (max-width:860px){ :root{ --page:var(--bg); --safe-t:0px; --safe-b:0px } }
 
 *,*::before,*::after{box-sizing:border-box}
 /* アプリらしい手ざわり: ダブルタップで拡大しない／長押しで文字の選択・コピー・画像の保存を出さない／端までスクロールしても画面を引っぱらせない */
@@ -331,4 +331,7 @@ button.pill{min-height:28px}
 .histbtn{margin:0 16px 12px;min-height:36px;font-size:12px;font-weight:700;text-align:left}
 .stage.solo{grid-template-columns:auto;justify-content:center}
 html::before{content:"";position:fixed;z-index:100;top:0;left:0;right:0;height:env(safe-area-inset-top,0px);background:#0c0c0c;pointer-events:none}
+/* ホーム画面アプリでは、時計の帯は iPhone 側が真っ黒で描く。そのすぐ下で画面の黒（わずかに明るい）と段差に見えないよう、上端だけ真っ黒からなじませる。
+   時計の帯の下までアプリが描く以前の設定（上のセーフエリアがある）では、高さが 0 になって何も出ない。 */
+@media (display-mode:standalone){ body::before{content:"";position:fixed;z-index:99;top:0;left:0;right:0;height:max(0px,calc(12px - env(safe-area-inset-top,0px)*12));background:linear-gradient(#000,rgba(0,0,0,0));pointer-events:none} }
 </style>
