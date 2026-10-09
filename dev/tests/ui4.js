@@ -1,0 +1,46 @@
+const { chromium } = require('playwright');
+const fs = require('fs'), path = require('path'), http = require('http');
+const root = path.join(__dirname, '..');
+const html = () => `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light}body{margin:0;font:14px system-ui}img{max-width:100%}[hidden]{display:none!important}</style></head><body>${fs.readFileSync(path.join(root, 'index.html'), 'utf8')}</body></html>`;
+(async () => {
+  const srv = http.createServer((q, r) => { r.setHeader('content-type', 'text/html; charset=utf-8'); r.end(html()); }).listen(0); const url = `http://127.0.0.1:${srv.address().port}/`;
+  const b = await chromium.launch(); const errs = [];
+  const c = await b.newContext({ viewport: { width: 402, height: 874 }, deviceScaleFactor: 2, colorScheme: 'dark', acceptDownloads: true, permissions: ['clipboard-read', 'clipboard-write'] }); const p = await c.newPage();
+  p.on('console', m => { if (m.type() === 'error' && !/ERR_|Failed to load resource/.test(m.text())) errs.push(m.text()); }); p.on('pageerror', e => errs.push('PAGEERROR ' + e.message));
+  const shot = n => p.screenshot({ path: path.join(root, 'shots', n + '.png') });
+  const st = () => p.evaluate(() => ({ mode: __demo.S.mode, n: __demo.db.sessions.length, mine: __demo.mine ? __demo.mine.sessions.length : null, bal: Calc.balances(__demo.db.stores, __demo.db.sessions).s1, backupAt: !!__demo.store.backupAt, theme: document.documentElement.dataset.theme, bg: getComputedStyle(document.querySelector('#app')).backgroundColor }));
+  const add = async (cash, out) => { await p.click('#app [data-tab="add"]'); await p.waitForTimeout(250); await p.click('[data-act="pickMachine"][data-i="0"]'); await p.click('[data-act="chooseMachine"][data-id="m2"]'); await p.fill('#f-p-0-cash', String(cash)); await p.fill('#f-p-0-out', String(out)); await p.click('[data-act="depSet"][data-v="all"]'); await p.click('[data-act="save"]'); await p.waitForTimeout(200); };
+  await p.goto(url); await p.waitForTimeout(400);
+  console.log('0 LOOK', JSON.stringify(await st()));
+  await p.click('[data-act="askMine"]'); await p.click('[data-act="useMine"]'); await p.waitForTimeout(150);
+  await add(3000, 400); await add(8000, 0);
+  console.log('1 MINE', JSON.stringify(await st()));
+  await p.click('#app [data-tab="more"]'); await p.click('#app [data-act="backup"]'); await p.waitForTimeout(250); await shot('b-sheet');
+  const [dl] = await Promise.all([p.waitForEvent('download', { timeout: 5000 }), p.click('[data-act="exportFile"]')]);
+  const file = path.join(root, 'shots', dl.suggestedFilename()); await dl.saveAs(file);
+  const j = JSON.parse(fs.readFileSync(file, 'utf8'));
+  console.log('2 FILE', dl.suggestedFilename(), 'bytes', fs.statSync(file).size, 'sessions', j.data.sessions.length, 'cardDefault', j.data.stores[0].cardDefault, JSON.stringify(await st()));
+  await p.click('[data-act="copyBackup"]'); await p.waitForTimeout(150);
+  const clip = await p.evaluate(() => navigator.clipboard.readText());
+  console.log('3 CLIP', clip.length, JSON.parse(clip).data.sessions.length);
+  await p.click('[data-act="closeSheet"]'); await add(1000, 0);
+  console.log('4 +1', JSON.stringify(await st()));
+  // 貼り付けで復元 → 2件に戻る
+  await p.click('#app [data-tab="more"]'); await p.click('#app [data-act="backup"]'); await p.waitForTimeout(200);
+  await p.fill('#bk-in', 'これはバックアップではない'); await p.click('[data-act="readPasted"]'); await p.waitForTimeout(100);
+  console.log('5 BAD', await p.evaluate(() => document.querySelector('.sheet .banner.err')?.textContent));
+  await p.fill('#bk-in', '{"app":"other","format":1,"data":{}}'); await p.click('[data-act="readPasted"]'); await p.waitForTimeout(100);
+  console.log('6 BAD2', await p.evaluate(() => document.querySelector('.sheet .banner.err')?.textContent));
+  await p.fill('#bk-in', clip); await p.click('[data-act="readPasted"]'); await p.waitForTimeout(150); await shot('b-confirm');
+  console.log('7 CONFIRM', await p.evaluate(() => document.querySelector('.dialog p').textContent));
+  await p.click('[data-act="doRestore"]'); await p.waitForTimeout(200);
+  console.log('8 RESTORED', JSON.stringify(await st()));
+  await p.click('[data-act="undo"]'); await p.waitForTimeout(150);
+  console.log('9 UNDO', JSON.stringify(await st()));
+  // ファイルから復元（別のブラウザ＝新しい端末を想定）
+  const c2 = await b.newContext({ viewport: { width: 402, height: 874 }, deviceScaleFactor: 2 }); const p2 = await c2.newPage(); await p2.goto(url); await p2.waitForTimeout(400);
+  await p2.click('#app [data-tab="more"]'); await p2.click('#app [data-act="backup"]'); await p2.setInputFiles('#bk-file', file); await p2.waitForTimeout(250);
+  await p2.click('[data-act="doRestore"]'); await p2.waitForTimeout(200); await p2.reload(); await p2.waitForTimeout(400);
+  console.log('10 NEW DEVICE', await p2.evaluate(() => JSON.stringify({ mode: __demo.S.mode, n: __demo.db.sessions.length, bal: Calc.balances(__demo.db.stores, __demo.db.sessions).s1, card: document.querySelector('#app .member img')?.naturalWidth })));
+  console.log('ERRORS', JSON.stringify(errs)); await b.close(); srv.close();
+})();

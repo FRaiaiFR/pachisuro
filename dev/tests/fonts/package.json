@@ -1,0 +1,28 @@
+{
+  "name": "fonts",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@fontsource/barlow-semi-condensed": "^5.3.0",
+    "@fontsource/bebas-neue": "^5.3.0",
+    "@fontsource/big-shoulders-display": "^5.3.0",
+    "@fontsource/bodoni-moda": "^5.3.0",
+    "@fontsource/chakra-petch": "^5.3.0",
+    "@fontsource/dm-mono": "^5.3.0",
+    "@fontsource/inter": "^5.3.0",
+    "@fontsource/jetbrains-mono": "^5.3.0",
+    "@fontsource/orbitron": "^5.3.0",
+    "@fontsource/oswald": "^5.3.0",
+    "@fontsource/outfit": "^5.3.0",
+    "@fontsource/rajdhani": "^5.3.0",
+    "@fontsource/saira-condensed": "^5.3.0",
+    "@fontsource/zen-kaku-gothic-new": "^5.3.0"
+  }
+}

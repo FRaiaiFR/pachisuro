@@ -1,0 +1,85 @@
+<div class="stage">
+  <aside class="notes" aria-label="デモ1について">
+    <div>
+      <p class="eyebrow">デモ1 ／ 操作できる試作</p>
+      <h1>パチスロ収支アプリ</h1>
+      <p class="lede">右の画面は実際に動きます。記録の追加・編集・削除、入力中の自動計算、カレンダー、分析まで一通り触れます。最初はサンプルを表示します。「自分の記録を始める」に切り替えると、空の状態から記録でき、この端末に保存されます。</p>
+    </div>
+    <section>
+      <h2>画面を開く</h2>
+      <div class="row">
+        <button class="btn line sm" data-act="tab" data-tab="home">ホーム</button>
+        <button class="btn line sm" data-act="tab" data-tab="cal">カレンダー</button>
+        <button class="btn line sm" data-act="tab" data-tab="add">記録入力</button>
+        <button class="btn line sm" data-act="tab" data-tab="stats">分析</button>
+        <button class="btn line sm" data-act="tab" data-tab="more">その他</button>
+        <button class="btn line sm" data-act="rules">計算ルール</button>
+      </div>
+    </section>
+    <section>
+      <h2>見た目を切り替える</h2>
+      <div class="row">
+        <button class="btn line sm" data-act="theme" data-t="dark">黒バージョン</button>
+        <button class="btn line sm" data-act="theme" data-t="light">白バージョン</button>
+        <button class="btn line sm" data-act="auditSheet">二重チェック</button>
+      </div>
+    </section>
+    <section>
+      <h2>決まったこと</h2>
+      <ul>
+        <li><b>デラックスセブン専用</b>：店舗の追加・切り替えはなし。ホームの最上部に会員カード。</li>
+        <li><b>貸出</b> 1,000円で47枚、<b>交換</b> 50枚で1,000円。</li>
+        <li><b>貯メダル</b>：1日に使えるのは470枚まで。再プレイ手数料なし。有効期限は扱わない。</li>
+        <li><b>収支の表示</b>：メダル評価込み（財布の増減＋貯メダルの増減を1枚20円で加算）。</li>
+        <li><b>記録の単位</b>：1件＝1日。その中に台を何台でも入れる。</li>
+        <li><b>台ごとの収支</b>：メダルを1枚20円で換算。持ちメダルで台を移っても日合計と突き合う。</li>
+        <li><b>勝率</b>：日単位で判定し、引き分けも分母に入れる。経費は勝敗に含めない。</li>
+        <li><b>換金額の自動計算</b>：100円単位で切り捨て。手入力で上書きできる。</li>
+        <li><b>時給・回収率</b>：時給は遊技時間を入れた記録だけで計算。回収率は（投資＋収支）÷投資。</li>
+        <li><b>参考値の表示</b>：付けない。機種別・曜日別には回数だけを添える。</li>
+        <li><b>二重チェック</b>：台別の合計と1日の収支の照合、二重計上の疑い、換金額の差、入力の矛盾を自動で調べる。修正前後の履歴を残す。</li>
+        <li><b>保存先</b>：端末内。サンプルと自分の記録は別々に持つ。バックアップは手動で書き出す。</li>
+        <li><b>置き場所</b>：GitHub Pages に置き、iPhone のホーム画面に追加して使う。</li>
+        <li><b>見た目</b>：黒が標準。数字はプラスもマイナスも同じ色で、符号と▲▼で区別する。白バージョンにも切り替えられる。</li>
+        <li><b>数字のフォント</b>：Rajdhani に固定。</li>
+      </ul>
+    </section>
+    <section>
+      <h2>まだ確認していないこと</h2>
+      <ul>
+        <li><b>貯メダルの上限を超えた入力</b>：注意ではなく、保存できない扱いにしている。</li>
+        <li><b>月間の現金投資上限</b>：最初の値を80,000円にしている（変更できる）。</li>
+        <li><b>カレンダーの形</b>：いまの形と正方形をカレンダー画面で見比べられる。</li>
+      </ul>
+    </section>
+    <section>
+      <h2>まだ入っていないもの</h2>
+      <ul>
+        <li>写真、タグ、検索・絞り込み、CSV／JSONの入出力、通知</li>
+        <li>コード編集と連動する開発用プレビュー環境（技術選定のあとに構築）</li>
+      </ul>
+    </section>
+    <section>
+      <h2>サンプルの操作</h2>
+      <div class="row">
+        <button class="btn line sm" data-act="askReset">サンプルに戻す</button>
+        <button class="btn line sm" data-act="askClear">サンプルを空にして初期表示を見る</button>
+      </div>
+    </section>
+    <p class="meta">表示領域 402 × 874 pt（iPhone 17 Pro 相当）。スマートフォンで開くと枠なしの全画面で動きます。</p>
+  </aside>
+  <div class="device-wrap">
+    <div class="device">
+      <div class="island"></div>
+      <div class="statusbar"><span id="clock">9:41</span><svg viewBox="0 0 26 13" aria-hidden="true"><rect x=".5" y=".5" width="22" height="12" rx="3.5" fill="none" stroke="currentColor" opacity=".45"/><rect x="2" y="2" width="17" height="9" rx="2" fill="currentColor"/><rect x="24" y="4" width="1.6" height="5" rx=".8" fill="currentColor" opacity=".45"/></svg></div>
+      <div class="app" id="app">
+        <main class="screen" id="screen"></main>
+        <nav class="tabbar" id="tabbar" aria-label="メイン"></nav>
+        <div id="sheet"></div>
+        <div id="overlay"></div>
+        <div id="toast"></div>
+      </div>
+      <div class="homebar"></div>
+    </div>
+  </div>
+</div>
