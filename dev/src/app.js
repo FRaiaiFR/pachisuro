@@ -957,6 +957,11 @@ document.addEventListener('change', e => {
 });
 document.addEventListener('focusin', e => { if (e.target.dataset?.num != null) { const el = e.target, v = digits(el.value); if (v !== el.value) el.value = v; if (v) setTimeout(() => { try { if (document.activeElement === el) el.setSelectionRange(0, el.value.length); } catch (_) {} }, 0); }
   if (matchMedia('(max-width:860px)').matches && e.target.matches('.sh-body input,.sh-body textarea')) setTimeout(() => e.target.scrollIntoView({ block: 'center', behavior: 'smooth' }), 280); });
+// 長押しのメニューを出さない（入力欄は除く）
+document.addEventListener('contextmenu', e => { if (!e.target.closest('input,textarea')) e.preventDefault(); });
+// すばやい2回タップでの拡大を止める（CSS の指定が効かない場合の備え）。ボタンや入力欄の連打は止めない
+let lastTap = 0;
+document.addEventListener('touchend', e => { const t = e.timeStamp, quick = t - lastTap < 320; lastTap = t; if (quick && e.cancelable && !e.target.closest('button,a,input,textarea,select,label,[data-act]')) e.preventDefault(); }, { passive: false });
 document.addEventListener('submit', e => { e.preventDefault(); if (e.target.dataset?.form === 'sync') A.syLogin(); });
 document.addEventListener('focusout', e => { if (e.target.dataset?.num != null) e.target.value = fin(digits(e.target.value)); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') { if (S.confirm) A.cancelConfirm(); else if (S.picker) A.closePicker(); else if (S.sheet?.type === 'store') A.closeStore(); else if (S.sheet) A.closeSheet(); } });

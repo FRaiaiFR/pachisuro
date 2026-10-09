@@ -22,6 +22,20 @@ const H = require('./helper.js'), F = require('./fixture.js');
   await p.click('#app [data-tab="home"]');
   check('1 数字のフォントの指定', await p.evaluate(() => getComputedStyle(document.querySelector('.hero .big .nv')).fontFamily.split(',')[0].replace(/"/g, '')), 'Rajdhani');
 
+  // 1b. アプリらしい手ざわり: ダブルタップで拡大しない／長押しでコピーや画像保存が出ない／端で画面が引っぱられない
+  await p.click('#app [data-tab="more"]'); await p.waitForTimeout(120);
+  const cs = (q, k) => p.evaluate(([q, k]) => [...document.querySelectorAll(q)].slice(0, 40).map(e => getComputedStyle(e)[k]).filter((v, i, a) => a.indexOf(v) === i).join('|'), [q, k]);
+  check('1b ダブルタップで拡大しない指定が全部の要素に付いている', await cs('#app *', 'touchAction'), 'manipulation');
+  check('1b 文字は長押しで選択されない。入力欄だけは選択できる', [await cs('body, #screen .card, #screen .note, #screen h1, #tabbar button', 'userSelect'), await cs('#f-budget', 'userSelect')], ['none', 'text']);
+  check('1b 端までスクロールしても画面が引っぱられない', [await cs('html, body, #screen', 'overscrollBehaviorY')], ['none']);
+  const css = fs.readFileSync(path.join(H.root, 'dist', 'index.html'), 'utf8');
+  check('1b 長押しメニュー・画像のドラッグを止める指定がある', [/-webkit-touch-callout:none/.test(css), /-webkit-user-drag:none/.test(css)], [true, true]);
+  check('1b 長押しメニュー（右クリック）は入力欄以外では出さない', await p.evaluate(() => { const f = el => { const e = new MouseEvent('contextmenu', { bubbles: true, cancelable: true }); el.dispatchEvent(e); return e.defaultPrevented; }; return [f(document.querySelector('#screen .card')), f(document.querySelector('#app .top h1')), f(document.querySelector('#f-budget'))]; }), [true, true, false]);
+  check('1b すばやい2回タップ: 文字の上では2回目を止め、ボタンの連打は止めない', await p.evaluate(() => { const tap = el => { const e = new Event('touchend', { bubbles: true, cancelable: true }); el.dispatchEvent(e); return e.defaultPrevented; }; const t = document.querySelector('#screen .note'), b = document.querySelector('#tabbar button'); const r = [tap(t), tap(t), tap(b), tap(b)]; return r; }), [false, true, false, false]);
+  await p.click('#app [data-tab="add"]'); await p.waitForTimeout(250);
+  check('1b 入力画面も同じ（スクロール・メモ欄）', [await cs('.sh-body', 'overscrollBehaviorY'), await cs('.sheet input', 'userSelect'), await cs('.sheet *', 'touchAction')], ['none', 'text', 'manipulation']);
+  await p.click('.sheet [data-act="closeSheet"]'); await p.waitForTimeout(150); await p.click('#app [data-tab="home"]');
+
   // 2. 各画面がはみ出さない
   const over = {}; for (const t of ['home', 'cal', 'stats', 'more']) { await p.click(`#app [data-tab="${t}"]`); await p.waitForTimeout(120); over[t] = await overflow(p); }
   check('2 横にはみ出さない（幅402）', over, { home: 0, cal: 0, stats: 0, more: 0 });
