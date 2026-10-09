@@ -9,7 +9,7 @@ fs.writeFileSync(path.join(root, 'shots/_wrapped.html'), `<!doctype html><html><
   let p = await mk(402, 874);
   await p.click('#app [data-tab="more"]'); await p.click('#app [data-act="backup"]'); await p.waitForTimeout(250); await shot(p, 'w-backup'); await p.click('[data-act="closeSheet"]');
   await p.evaluate(() => { document.querySelector('#screen').scrollTop = 99999; }); await shot(p, 'w-more-end');
-  await p.click('[data-act="theme"][data-t="dark"]'); await p.click('#app [data-tab="home"]'); await p.waitForTimeout(150); await shot(p, 'k-home');
+  await p.click('#app .lookseg [data-t="dark"]'); await p.click('#app [data-tab="home"]'); await p.waitForTimeout(150); await shot(p, 'k-home');
   await p.click('#app [data-tab="cal"]'); await shot(p, 'k-cal'); await p.click('#app [data-tab="stats"]'); await p.evaluate(() => { document.querySelector('#screen').scrollTop = 700; }); await shot(p, 'k-stats');
   p = await mk(1280, 900); await shot(p, 'w-desktop');
   // コントラスト（白地）: 主要な文字色

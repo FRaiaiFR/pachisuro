@@ -10,8 +10,8 @@
 <meta name="theme-color" content="#0c0c0c">
 <meta name="format-detection" content="telephone=no">
 <meta name="robots" content="noindex,nofollow">
-<link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=2">
+<link rel="icon" type="image/png" href="icon-192.png?v=2">
 <link rel="manifest" href="manifest.webmanifest">
 <style>:root{padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
 <title>パチスロ収支</title>
@@ -160,12 +160,12 @@ ul{padding:0;list-style:none}
 .cal-nav button{width:44px;height:44px;display:grid;place-items:center;border-radius:12px}
 .cal-nav svg,.sh-head svg,.chev{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .cal-nav b{font-family:var(--font-num);font-size:calc(20px*var(--num-s));font-weight:var(--num-w)}
-.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:2px}
+.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px}
 .cal .wd{font-size:10.5px;color:var(--fg-3);text-align:center;padding:4px 0}
-.cal .c{aspect-ratio:1/1.12;border-radius:9px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:1px;padding-top:5px;min-width:0;font-family:var(--font-num)}
-.cal .c .dn{font-size:13px;font-weight:500;color:var(--fg-2);line-height:1.2}
+.cal .c{aspect-ratio:1/1;border-radius:4px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;min-width:0;font-family:var(--font-num)}
+.cal .c .dn{font-size:12.5px;font-weight:500;color:var(--fg-2);line-height:1.2}
 .cal .c .am{font-size:calc(10.5px*var(--num-s));font-weight:var(--num-w);line-height:1.15;letter-spacing:0}
-.cal .c .mk{font-size:7px;line-height:1}
+.cal .c .mk{font-size:6px;line-height:1}
 .cal .c.out{visibility:hidden}
 .cal .c.win{background:var(--fg);color:var(--bg)} .cal .c.win .dn{color:inherit;opacity:.72}
 .cal .c.lose{box-shadow:inset 0 0 0 1px var(--line-2)} .cal .c.draw{background:var(--raised)}
@@ -334,9 +334,6 @@ button.pill{min-height:28px}
 .lookseg button{min-width:36px;height:28px;border-radius:999px;font-size:12px;font-weight:500;color:var(--fg-2)}
 .lookseg button[aria-pressed="true"]{background:var(--fg);color:var(--bg);font-weight:700}
 .frow input.numin{font-family:var(--font-num);font-weight:var(--num-w);font-size:max(16px,calc(20px*var(--num-s)))}
-.cal.sq{gap:3px}
-.cal.sq .c{aspect-ratio:1/1;border-radius:4px;justify-content:center;padding-top:0;gap:0}
-.cal.sq .c .dn{font-size:12.5px} .cal.sq .c .mk{font-size:6px}
 .recon{margin:0 16px 12px;padding:12px 14px;border-radius:12px;background:var(--raised);display:flex;flex-direction:column;gap:8px}
 .recon > header{display:flex;justify-content:space-between;align-items:center;gap:8px}
 .recon > header b{font-size:12.5px}
@@ -693,7 +690,7 @@ function newMine() {
 }
 function pack() {   // 同梱のカード画像は保存データに含めない（容量の節約）
   const m = mine && { ...mine, stores: mine.stores.map(st => (st.card === CARD_MAIN ? { ...st, card: '', cardDefault: true } : st)) };
-  return JSON.stringify({ v: 1, mode: S.mode, settings: { budget: S.budget, look2: S.look, calShape: S.calShape }, mine: m });
+  return JSON.stringify({ v: 1, mode: S.mode, settings: { budget: S.budget, look2: S.look }, mine: m });
 }
 function persist() {
   stamp++;
@@ -886,8 +883,7 @@ const views = {
     const passed = m < t.slice(0, 7) ? nd : m === t.slice(0, 7) ? pdate(t).getDate() : 0;
     return `<header class="top"><div><p class="eyebrow">${basisLabel()}で表示</p><h1>カレンダー</h1></div>${topRight()}</header>
     <div class="cal-nav"><button data-act="calMove" data-k="-1" aria-label="前の月">${svg('left')}</button><b>${y}年 ${mo}月</b><button data-act="calMove" data-k="1" aria-label="次の月" ${m >= t.slice(0, 7) ? 'disabled style="opacity:.25"' : ''}>${svg('right')}</button></div>
-    <div class="seg" role="group" aria-label="カレンダーの形（見比べ用）"><button data-act="calShape" data-v="tall" aria-pressed="${S.calShape !== 'square'}">いまの形</button><button data-act="calShape" data-v="square" aria-pressed="${S.calShape === 'square'}">正方形</button></div>
-    <div class="cal${S.calShape === 'square' ? ' sq' : ''}">${cells}</div>
+    <div class="cal">${cells}</div>
     <section class="card">
       <header><h2>${mo}月の合計</h2><span style="font-size:22px">${Y(st.result)}</span></header>
       <div class="kv3">
@@ -1271,7 +1267,6 @@ const A = {
   tab(el) { if (el.dataset.tab === 'add') { S.back = null; return openEntry(); } closeSheet(); S.tab = el.dataset.tab; if (S.tab === 'cal') S.cal = S.cal || TODAY().slice(0, 7); render(); },
   period(el) { S.period = el.dataset.p; render(); },
   theme(el) { S.look = el.dataset.t; applyTheme(); render(); },
-  calShape(el) { S.calShape = el.dataset.v; render(); },
   calMove(el) { if (el.disabled) return; S.cal = addMonth(S.cal, +el.dataset.k); render(); },
   day(el) { S.sheet = { type: 'day', date: el.dataset.date }; S.enter = true; renderSheet(); },
   toggleHist(el) { S.sheet.hist = S.sheet.hist === el.dataset.id ? null : el.dataset.id; renderSheet(); },
@@ -1386,8 +1381,8 @@ function fit() { const w = $('.device-wrap'); if (matchMedia('(max-width:860px)'
 function tick() { const d = new Date(); $('#clock').textContent = `${d.getHours()}:${pad(d.getMinutes())}`; }
 function start(data) {
   const saved = restore(), keep = (data && data.S) || {};
-  S = Object.assign({ tab: 'home', period: 'all', cal: TODAY().slice(0, 7) }, keep, { basis: 'eval', mode: 'sample', budget: 80000, look: 'dark', calShape: 'tall' },
-    saved ? { mode: saved.mode === 'mine' && saved.mine ? 'mine' : 'sample', budget: Calc.n(saved.settings?.budget) || 80000, look: saved.settings?.look2 === 'light' ? 'light' : 'dark', calShape: saved.settings?.calShape === 'square' ? 'square' : 'tall' } : {},
+  S = Object.assign({ tab: 'home', period: 'all', cal: TODAY().slice(0, 7) }, keep, { basis: 'eval', mode: 'sample', budget: 80000, look: 'dark' },
+    saved ? { mode: saved.mode === 'mine' && saved.mine ? 'mine' : 'sample', budget: Calc.n(saved.settings?.budget) || 80000, look: saved.settings?.look2 === 'light' ? 'light' : 'dark' } : {},
     { sheet: null, draft: null, picker: null, confirm: null, sd: null, undo: null, back: null, tried: false, enter: false });
   mine = saved ? saved.mine : null;
   if (S.mode === 'mine') db = mine; else { sample = sampleDB(); db = sample; }

@@ -144,12 +144,12 @@ ul{padding:0;list-style:none}
 .cal-nav button{width:44px;height:44px;display:grid;place-items:center;border-radius:12px}
 .cal-nav svg,.sh-head svg,.chev{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .cal-nav b{font-family:var(--font-num);font-size:calc(20px*var(--num-s));font-weight:var(--num-w)}
-.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:2px}
+.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px}
 .cal .wd{font-size:10.5px;color:var(--fg-3);text-align:center;padding:4px 0}
-.cal .c{aspect-ratio:1/1.12;border-radius:9px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:1px;padding-top:5px;min-width:0;font-family:var(--font-num)}
-.cal .c .dn{font-size:13px;font-weight:500;color:var(--fg-2);line-height:1.2}
+.cal .c{aspect-ratio:1/1;border-radius:4px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;min-width:0;font-family:var(--font-num)}
+.cal .c .dn{font-size:12.5px;font-weight:500;color:var(--fg-2);line-height:1.2}
 .cal .c .am{font-size:calc(10.5px*var(--num-s));font-weight:var(--num-w);line-height:1.15;letter-spacing:0}
-.cal .c .mk{font-size:7px;line-height:1}
+.cal .c .mk{font-size:6px;line-height:1}
 .cal .c.out{visibility:hidden}
 .cal .c.win{background:var(--fg);color:var(--bg)} .cal .c.win .dn{color:inherit;opacity:.72}
 .cal .c.lose{box-shadow:inset 0 0 0 1px var(--line-2)} .cal .c.draw{background:var(--raised)}
@@ -318,9 +318,6 @@ button.pill{min-height:28px}
 .lookseg button{min-width:36px;height:28px;border-radius:999px;font-size:12px;font-weight:500;color:var(--fg-2)}
 .lookseg button[aria-pressed="true"]{background:var(--fg);color:var(--bg);font-weight:700}
 .frow input.numin{font-family:var(--font-num);font-weight:var(--num-w);font-size:max(16px,calc(20px*var(--num-s)))}
-.cal.sq{gap:3px}
-.cal.sq .c{aspect-ratio:1/1;border-radius:4px;justify-content:center;padding-top:0;gap:0}
-.cal.sq .c .dn{font-size:12.5px} .cal.sq .c .mk{font-size:6px}
 .recon{margin:0 16px 12px;padding:12px 14px;border-radius:12px;background:var(--raised);display:flex;flex-direction:column;gap:8px}
 .recon > header{display:flex;justify-content:space-between;align-items:center;gap:8px}
 .recon > header b{font-size:12.5px}

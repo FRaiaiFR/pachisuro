@@ -105,7 +105,7 @@ function newMine() {
 }
 function pack() {   // 同梱のカード画像は保存データに含めない（容量の節約）
   const m = mine && { ...mine, stores: mine.stores.map(st => (st.card === CARD_MAIN ? { ...st, card: '', cardDefault: true } : st)) };
-  return JSON.stringify({ v: 1, mode: S.mode, settings: { budget: S.budget, look2: S.look, calShape: S.calShape }, mine: m });
+  return JSON.stringify({ v: 1, mode: S.mode, settings: { budget: S.budget, look2: S.look }, mine: m });
 }
 function persist() {
   stamp++;
@@ -298,8 +298,7 @@ const views = {
     const passed = m < t.slice(0, 7) ? nd : m === t.slice(0, 7) ? pdate(t).getDate() : 0;
     return `<header class="top"><div><p class="eyebrow">${basisLabel()}で表示</p><h1>カレンダー</h1></div>${topRight()}</header>
     <div class="cal-nav"><button data-act="calMove" data-k="-1" aria-label="前の月">${svg('left')}</button><b>${y}年 ${mo}月</b><button data-act="calMove" data-k="1" aria-label="次の月" ${m >= t.slice(0, 7) ? 'disabled style="opacity:.25"' : ''}>${svg('right')}</button></div>
-    <div class="seg" role="group" aria-label="カレンダーの形（見比べ用）"><button data-act="calShape" data-v="tall" aria-pressed="${S.calShape !== 'square'}">いまの形</button><button data-act="calShape" data-v="square" aria-pressed="${S.calShape === 'square'}">正方形</button></div>
-    <div class="cal${S.calShape === 'square' ? ' sq' : ''}">${cells}</div>
+    <div class="cal">${cells}</div>
     <section class="card">
       <header><h2>${mo}月の合計</h2><span style="font-size:22px">${Y(st.result)}</span></header>
       <div class="kv3">
@@ -683,7 +682,6 @@ const A = {
   tab(el) { if (el.dataset.tab === 'add') { S.back = null; return openEntry(); } closeSheet(); S.tab = el.dataset.tab; if (S.tab === 'cal') S.cal = S.cal || TODAY().slice(0, 7); render(); },
   period(el) { S.period = el.dataset.p; render(); },
   theme(el) { S.look = el.dataset.t; applyTheme(); render(); },
-  calShape(el) { S.calShape = el.dataset.v; render(); },
   calMove(el) { if (el.disabled) return; S.cal = addMonth(S.cal, +el.dataset.k); render(); },
   day(el) { S.sheet = { type: 'day', date: el.dataset.date }; S.enter = true; renderSheet(); },
   toggleHist(el) { S.sheet.hist = S.sheet.hist === el.dataset.id ? null : el.dataset.id; renderSheet(); },
@@ -798,8 +796,8 @@ function fit() { const w = $('.device-wrap'); if (matchMedia('(max-width:860px)'
 function tick() { const d = new Date(); $('#clock').textContent = `${d.getHours()}:${pad(d.getMinutes())}`; }
 function start(data) {
   const saved = restore(), keep = (data && data.S) || {};
-  S = Object.assign({ tab: 'home', period: 'all', cal: TODAY().slice(0, 7) }, keep, { basis: 'eval', mode: 'sample', budget: 80000, look: 'dark', calShape: 'tall' },
-    saved ? { mode: saved.mode === 'mine' && saved.mine ? 'mine' : 'sample', budget: Calc.n(saved.settings?.budget) || 80000, look: saved.settings?.look2 === 'light' ? 'light' : 'dark', calShape: saved.settings?.calShape === 'square' ? 'square' : 'tall' } : {},
+  S = Object.assign({ tab: 'home', period: 'all', cal: TODAY().slice(0, 7) }, keep, { basis: 'eval', mode: 'sample', budget: 80000, look: 'dark' },
+    saved ? { mode: saved.mode === 'mine' && saved.mine ? 'mine' : 'sample', budget: Calc.n(saved.settings?.budget) || 80000, look: saved.settings?.look2 === 'light' ? 'light' : 'dark' } : {},
     { sheet: null, draft: null, picker: null, confirm: null, sd: null, undo: null, back: null, tried: false, enter: false });
   mine = saved ? saved.mine : null;
   if (S.mode === 'mine') db = mine; else { sample = sampleDB(); db = sample; }

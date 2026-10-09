@@ -1,4 +1,4 @@
-// 黒標準・カレンダーの形・二重チェック・変更履歴の確認
+// 黒標準・カレンダー（正方形）・二重チェック・変更履歴の確認
 const { chromium } = require('playwright'); const path = require('path'); const FS = require('./fontserver.js');
 const root = path.join(__dirname, '..');
 (async () => {
@@ -37,14 +37,13 @@ const root = path.join(__dirname, '..');
   await p.fill('#f-p-1-cash', '1500'); await p.click('#carry-1'); await p.waitForTimeout(100);
   console.log('7 LIVE WARN2', await p.evaluate(() => [...document.querySelectorAll('#entry-msgs .issue')].map(e => e.textContent)));
   await p.click('[data-act="closeSheet"]');
-  // カレンダー: 2つの形
-  await p.click('#app [data-tab="cal"]'); await p.click('[data-act="calMove"][data-k="-1"]'); await p.waitForTimeout(150); await shot('q-cal-tall');
-  await p.click('[data-act="calShape"][data-v="square"]'); await p.waitForTimeout(150); await shot('q-cal-square');
+  // カレンダー: マスは正方形
+  await p.click('#app [data-tab="cal"]'); await p.click('[data-act="calMove"][data-k="-1"]'); await p.waitForTimeout(150); await shot('q-cal-square');
   console.log('8 CAL', await p.evaluate(() => { const c = document.querySelector('.cal .c.win, .cal .c.lose').getBoundingClientRect(); const over = [...document.querySelectorAll('.cal .c')].filter(e => e.scrollHeight > e.clientHeight + 1 || [...e.children].some(k => k.getBoundingClientRect().bottom > e.getBoundingClientRect().bottom + 0.5)).length; return Math.round(c.width) + 'x' + Math.round(c.height) + ' overflowCells=' + over; }));
   await p.setViewportSize({ width: 375, height: 667 }); await p.waitForTimeout(150);
   console.log('9 CAL375', await p.evaluate(() => { const c = document.querySelector('.cal .c.win, .cal .c.lose').getBoundingClientRect(); const over = [...document.querySelectorAll('.cal .c')].filter(e => [...e.children].some(k => k.getBoundingClientRect().bottom > e.getBoundingClientRect().bottom + 0.5 || k.getBoundingClientRect().width > e.getBoundingClientRect().width)).length; return Math.round(c.width) + 'x' + Math.round(c.height) + ' overflowCells=' + over; }));
   await p.setViewportSize({ width: 402, height: 874 });
-  await p.click('#app .lookseg [data-t="light"]'); await p.waitForTimeout(100); await shot('q-cal-square-white'); await p.click('[data-act="calShape"][data-v="tall"]'); await shot('q-cal-tall-white');
-  await p.reload(); await p.waitForTimeout(400); console.log('10 PERSIST', await p.evaluate(() => [__demo.S.look, __demo.S.calShape].join(' ')));
+  await p.click('#app .lookseg [data-t="light"]'); await p.waitForTimeout(100); await shot('q-cal-square-white');
+  await p.reload(); await p.waitForTimeout(400); console.log('10 PERSIST', await p.evaluate(() => [__demo.S.look, document.querySelectorAll('[data-act="calShape"]').length, 'calShape' in __demo.S].join(' ')));
   console.log('ERRORS', JSON.stringify(errs)); await b.close(); srv.close();
 })();

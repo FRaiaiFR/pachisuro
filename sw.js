@@ -1,6 +1,6 @@
 // オフラインでも開けるようにするための最小限のキャッシュ。
 // ページ本体は「まず通信、だめなら前回の保存分」。フォントは「保存分があればそれを使う」。
-const CACHE = 'dx7-shushi-v1';
+const CACHE = 'dx7-shushi-v2';
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', e => e.waitUntil((async () => {
   for (const k of await caches.keys()) if (k.startsWith('dx7-shushi-') && k !== CACHE) await caches.delete(k);
