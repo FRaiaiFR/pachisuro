@@ -21,7 +21,7 @@ const root = path.join(__dirname, '..'); const DIST = path.join(root, 'dist'); c
   await p.click('#app [data-tab="add"]'); await p.waitForTimeout(300); await pick('m1'); await p.fill('#f-p-0-cash', '5000'); await p.fill('#f-p-0-out', '300'); await p.click('[data-act="moreFields"]'); await p.fill('#f-memo', '朝イチ');
   await p.waitForTimeout(500); await reload();
   check('2 再読み込み後に続きから', await state(), { sheet: '実戦を記録', cash: '5,000', out: '300', banner: false, stored: true, n: 0 });
-  check('2 機種・メモ・お知らせ', await p.evaluate(() => [__demo.S.draft?.plays[0].machineId, document.querySelector('#f-memo')?.value, document.querySelector('#toast')?.textContent.includes('復元')]), ['m1', '朝イチ', true]);
+  check('2 機種・メモ', await p.evaluate(() => [__demo.S.draft?.plays[0].machineId, document.querySelector('#f-memo')?.value]), ['m1', '朝イチ']);
 
   // 3. 打った直後（待たずに）再読み込みしても残る
   await p.fill('#f-p-0-out', '777'); await reload();
@@ -42,12 +42,11 @@ const root = path.join(__dirname, '..'); const DIST = path.join(root, 'dist'); c
   check('5 ＋ボタンでも続きが開く', (await state()).cash, '3,000');
   await p.click('.sheet [data-act="closeSheet"]'); await p.waitForTimeout(300);
 
-  // 6. 破棄 → 案内が消える。「元に戻す」で戻る
-  await p.click('#screen [data-act="dropDraft"]'); await p.waitForTimeout(200);
+  // 6. 破棄（確認つき。「やめる」なら残る）
+  await p.click('#screen [data-act="askDropDraft"]'); await p.click('[data-act="cancelConfirm"]'); await p.waitForTimeout(150);
+  check('6 破棄をやめる', [(await state()).banner, (await state()).stored], [true, true]);
+  await p.click('#screen [data-act="askDropDraft"]'); await p.click('[data-act="dropDraft"]'); await p.waitForTimeout(200);
   check('6 破棄', [(await state()).banner, (await state()).stored], [false, false]);
-  await p.click('#toast [data-act="undo"]'); await p.waitForTimeout(200);
-  check('6 元に戻す', [(await state()).banner, (await state()).stored], [true, true]);
-  await p.click('#screen [data-act="dropDraft"]'); await p.waitForTimeout(200);
 
   // 7. 既存の記録の編集中に再読み込み → 編集画面が戻る。「閉じる」なら編集は取り消し（下書きも残さない）
   await p.click('#screen .list .item[data-act="day"]'); await p.waitForTimeout(250); await p.click('[data-act="editRec"]'); await p.waitForTimeout(250);

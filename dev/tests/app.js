@@ -53,11 +53,10 @@ const H = require('./helper.js'), F = require('./fixture.js');
   const saved = await p.evaluate(() => { const d = __demo.db, s = d.sessions[d.sessions.length - 1], c = Calc.session(s); return { n: d.sessions.length, id: s.id, date: s.date, cashOut: s.cashOut, deposit: s.deposit, hand: c.hand, cashResult: c.cashResult, evalResult: c.evalResult, gap: c.gap, machine: d.machines.find(m => m.id === s.plays[1].machineId)?.name }; });
   check('3 保存された値', { ...saved, id: 0 }, { n: data.sessions.length + 1, id: 0, date: today, cashOut: 20700, deposit: 300, hand: 1337, cashResult: 10700, evalResult: 16700, gap: -40, machine: 'テスト新機種' });
 
-  // 4. 削除と「元に戻す」
+  // 4. 削除（確認つき。消したあとは戻せない）。画面下のアナウンスは出ない
   await p.click('#app [data-tab="cal"]'); await p.click(`#screen [data-act="day"][data-date="${today}"]`); await p.waitForTimeout(250);
-  await p.click(`[data-act="askDel"][data-id="${saved.id}"]`); await p.click('[data-act="doDel"]'); await p.waitForTimeout(200); const afterDel = await n(p);
-  await p.click('#toast [data-act="undo"]'); await p.waitForTimeout(200);
-  check('4 削除 → 元に戻す', [afterDel, await n(p)], [data.sessions.length, data.sessions.length + 1]); await H.closeSheets(p);
+  await p.click(`[data-act="askDel"][data-id="${saved.id}"]`); const delMsg = await p.evaluate(() => document.querySelector('.dialog p').textContent); await p.click('[data-act="doDel"]'); await p.waitForTimeout(200);
+  check('4 削除', [await n(p), delMsg, await p.evaluate(() => document.querySelectorAll('#toast, .toast, [data-act="undo"]').length)], [data.sessions.length, '削除したあとは戻せません。', 0]); await H.closeSheets(p);
 
   // 5. 貯メダル: 1日 470枚まで
   const lim = await p.evaluate(t => { const d = __demo.db, bal = Calc.balances(d.stores, d.sessions).s1, used = d.sessions.filter(s => s.date === t).reduce((a, s) => a + s.plays.reduce((x, y) => x + y.savedIn, 0), 0); return { bal, left: 470 - used }; }, today);
@@ -87,7 +86,32 @@ const H = require('./helper.js'), F = require('./fixture.js');
   const w1 = await p.evaluate(() => [...document.querySelectorAll('#entry-msgs .issue')].map(e => e.textContent).join(' '));
   await p.fill('#f-p-1-cash', '1500'); await p.click('#carry-1'); await p.waitForTimeout(120); const w2 = await p.evaluate(() => [...document.querySelectorAll('#entry-msgs .issue')].map(e => e.textContent).join(' '));
   check('6 入力中の警告（二重計上の疑い・1,000円単位でない）', [/メダルが800枚残ったまま、現金で投資/.test(w1), /1,000円単位ではありません/.test(w2)], [true, true]);
-  await p.click('.sheet [data-act="closeSheet"]'); await p.waitForTimeout(200); await p.click('#app [data-tab="home"]'); await p.click('#screen [data-act="dropDraft"]');
+  await p.click('.sheet [data-act="closeSheet"]'); await p.waitForTimeout(200); await p.click('#app [data-tab="home"]'); await p.click('#screen [data-act="askDropDraft"]'); await p.click('[data-act="dropDraft"]'); await p.waitForTimeout(150);
+
+  // 6b. 機種を一覧から削除する（使っていない機種・記録で使っている機種）
+  const tmid = await p.evaluate(() => __demo.db.machines.find(m => m.name === 'テスト新機種').id);
+  const mnames = () => p.evaluate(() => [...document.querySelectorAll('#screen .list .item .tt')].map(e => e.textContent));
+  await p.click('#app [data-tab="more"]'); await p.waitForTimeout(150); const hadTest = (await mnames()).includes('テスト新機種');
+  await p.click(`#screen [data-act="askDelMachine"][data-id="${tmid}"]`); const m1msg = await p.evaluate(() => document.querySelector('.dialog p').textContent); await p.click('[data-act="doDelMachine"]'); await p.waitForTimeout(150);
+  check('6b 使っていない機種の削除', [hadTest, (await mnames()).includes('テスト新機種'), m1msg], [true, false, '機種を選ぶ一覧から消えます。同じ名前を追加し直せば、また選べます。']);
+  const used5 = await p.evaluate(() => __demo.db.sessions.filter(s => s.plays.some(x => x.machineId === 'm5')).length);
+  await p.click('#screen [data-act="askDelMachine"][data-id="m5"]'); const m5msg = await p.evaluate(() => document.querySelector('.dialog p').textContent); await p.click('[data-act="doDelMachine"]'); await p.waitForTimeout(150);
+  check('6b 記録で使っている機種の削除: 一覧から消えるが、記録と集計には名前が残る', [used5 > 0, m5msg.startsWith(`この機種を使った記録 ${used5}件は、機種名つきでそのまま残ります。`), (await mnames()).includes('マイジャグラーV'),
+    await p.evaluate(() => __demo.db.sessions.filter(s => s.plays.some(x => x.machineId === 'm5')).length), await p.evaluate(() => Calc.byMachine(__demo.db.sessions).some(r => r.id === 'm5'))], [true, true, false, used5, true]);
+  await p.click('#app [data-tab="stats"]'); await p.click('[data-p="all"]'); await p.waitForTimeout(150); check('6b 分析の機種別には名前が出る', await p.evaluate(() => document.querySelector('#screen').innerText.includes('マイジャグラーV')), true);
+
+  // 6c. 機種を選ぶ画面: 削除した機種は出ない。打った文字から正式名称の候補が出る
+  const rows = () => p.evaluate(() => ({ own: [...document.querySelectorAll('#mlist .mrow:not(.cat):not(.new) b')].map(e => e.textContent), cat: [...document.querySelectorAll('#mlist .mrow.cat b')].map(e => e.textContent), add: document.querySelector('#mlist .mrow.new')?.innerText.replace(/\n/g, '｜') || '' }));
+  await p.click('#app [data-tab="add"]'); await p.waitForTimeout(250); await p.click('[data-act="pickMachine"][data-i="0"]'); await p.waitForTimeout(100);
+  const r0 = await rows(); check('6c 削除した機種は選ぶ一覧に出ない', [r0.own.includes('マイジャグラーV'), r0.own.includes('テスト新機種'), r0.own.includes('スマスロ北斗の拳'), r0.cat.length], [false, false, true, 0]);
+  await p.fill('#mq', 'ほくと'); await p.waitForTimeout(80); const r1 = await rows(); check('6c 略称で打っても、持っている機種が出る', [r1.own, r1.cat], [['スマスロ北斗の拳'], []]);
+  await p.fill('#mq', 'まいじゃぐ'); await p.waitForTimeout(80); const r2 = await rows(); check('6c 一覧にない機種は、正式名称の候補が出る', [r2.own, r2.cat, r2.add], [[], ['マイジャグラーV'], '「まいじゃぐ」をこの名前のまま追加｜候補に当てはまるものがないとき']);
+  await p.screenshot({ path: path.join(H.root, 'shots', 'app-picker.png') });
+  await p.fill('#mq', 'ゴッドイーター'); await p.waitForTimeout(80); const r3 = await rows(); check('6c 候補がないときは、そのままの名前で追加できる', [r3.own, r3.cat, r3.add], [[], [], '「ゴッドイーター」をこの名前のまま追加｜正式名称の候補は見つかりませんでした']);
+  await p.fill('#mq', 'まいじゃぐ'); await p.waitForTimeout(80); await p.click('#mlist .mrow.cat'); await p.waitForTimeout(150);
+  check('6c 候補を選ぶと、正式名称で一覧に戻り、その台に入る', await p.evaluate(() => [__demo.S.draft.plays[0].machineId, __demo.db.machines.filter(m => m.name === 'マイジャグラーV').length, !!__demo.db.machines.find(m => m.id === 'm5').gone, !!document.querySelector('#mlist')]), ['m5', 1, false, false]);
+  await p.click('.sheet [data-act="closeSheet"]'); await p.waitForTimeout(200); await p.click('#app [data-tab="home"]'); await p.click('#screen [data-act="askDropDraft"]'); await p.click('[data-act="dropDraft"]'); await p.waitForTimeout(150);
+  await p.click('#app [data-tab="more"]'); await p.waitForTimeout(150); check('6c 「その他」の機種一覧にも戻っている', (await mnames()).includes('マイジャグラーV'), true); await p.screenshot({ path: path.join(H.root, 'shots', 'app-machines.png') });
 
   // 7. カレンダーのマスは正方形（幅402と幅375）
   const cal = async () => p.evaluate(() => { const cs = [...document.querySelectorAll('.cal .c')], r = (cs.find(e => e.matches('.win,.lose')) || cs[10]).getBoundingClientRect(); return [Math.abs(r.width - r.height) < 0.6, cs.filter(e => [...e.children].some(k => k.getBoundingClientRect().bottom > e.getBoundingClientRect().bottom + 0.5 || k.getBoundingClientRect().width > e.getBoundingClientRect().width + 0.5)).length]; });
@@ -111,26 +135,26 @@ const H = require('./helper.js'), F = require('./fixture.js');
 
   // 10. バックアップ: ファイルに保存・テキストをコピー → 1件足す → 復元で2件に戻る → 元に戻すで3件
   await p.click('#app [data-tab="more"]'); await p.click('#screen [data-act="backup"]'); await p.waitForTimeout(250);
-  const [dl] = await Promise.all([p.waitForEvent('download', { timeout: 8000 }), p.click('[data-act="exportFile"]')]); const file = path.join(H.root, 'shots', dl.suggestedFilename()); await dl.saveAs(file); const j = JSON.parse(fs.readFileSync(file, 'utf8'));
+  const [dl] = await Promise.all([p.waitForEvent('download', { timeout: 8000 }), p.click('[data-act="exportFile"]')]); await p.waitForTimeout(150); const bkInfo = await p.evaluate(() => document.querySelector('#bk-info')?.textContent || ''); const file = path.join(H.root, 'shots', dl.suggestedFilename()); await dl.saveAs(file); const j = JSON.parse(fs.readFileSync(file, 'utf8'));
   await p.click('[data-act="copyBackup"]'); await p.waitForTimeout(150); const clip = await p.evaluate(() => navigator.clipboard.readText());
-  check('10 書き出し', [/^dx7-shushi-backup-\d{8}-\d{4}\.json$/.test(dl.suggestedFilename()), j.app, j.data.sessions.length, j.data.stores[0].cardDefault, JSON.parse(clip).data.sessions.length, await p.evaluate(() => !!__demo.store.backupAt)], [true, 'dx7-shushi', 2, true, 2, true]);
+  check('10 書き出し', [/^dx7-shushi-backup-\d{8}-\d{4}\.json$/.test(dl.suggestedFilename()), j.app, j.data.sessions.length, j.data.stores[0].cardDefault, JSON.parse(clip).data.sessions.length, await p.evaluate(() => !!__demo.store.backupAt), bkInfo.length > 0, await p.evaluate(() => /コピーしました/.test(document.querySelector('#bk-info')?.textContent || ''))], [true, 'dx7-shushi', 2, true, 2, true, true, true]);
   await H.add(p, 'm2', 1000, 0); await p.click('#app [data-tab="more"]'); await p.click('#screen [data-act="backup"]'); await p.waitForTimeout(200);
   await p.fill('#bk-in', 'これはバックアップではない'); await p.click('[data-act="readPasted"]'); await p.waitForTimeout(100); const bad1 = await p.evaluate(() => document.querySelector('.sheet .banner.err')?.textContent);
   await p.fill('#bk-in', '{"app":"other","format":1,"data":{}}'); await p.click('[data-act="readPasted"]'); await p.waitForTimeout(100); const bad2 = await p.evaluate(() => document.querySelector('.sheet .banner.err')?.textContent);
   check('10 バックアップでないものは読まない', [bad1, bad2, await n(p)], ['読み込めませんでした。バックアップの内容が最初から最後まで入っているか確認してください。', 'このアプリのバックアップではありません。', 3]);
   await p.fill('#bk-in', clip); await p.click('[data-act="readPasted"]'); await p.waitForTimeout(150); const conf = await p.evaluate(() => document.querySelector('.dialog p').textContent);
-  await p.click('[data-act="doRestore"]'); await p.waitForTimeout(200); const restored = await n(p); await p.click('#toast [data-act="undo"]'); await p.waitForTimeout(150);
-  check('10 復元 → 元に戻す', [/記録 2件）を読み込みます。いまの記録 3件は置き換えられます/.test(conf), restored, await n(p)], [true, 2, 3]);
+  await p.click('[data-act="doRestore"]'); await p.waitForTimeout(200);
+  check('10 復元', [/記録 2件）を読み込みます。いまの記録 3件は置き換えられます。置き換えたあとは戻せません。/.test(conf), await n(p)], [true, 2]);
   const p2 = await open(); await p2.click('#app [data-tab="more"]'); await p2.click('#screen [data-act="backup"]'); await p2.setInputFiles('#bk-file', file); await p2.waitForTimeout(250); await p2.click('[data-act="doRestore"]'); await p2.waitForTimeout(200); await p2.reload(); await p2.waitForTimeout(450);
   check('10 別の端末でファイルから復元', await p2.evaluate(() => [__demo.db.sessions.length, Calc.balances(__demo.db.stores, __demo.db.sessions).s1, document.querySelector('#app .member img')?.naturalWidth]), [2, 400, 856]);
 
-  // 11. すべて消す → 元に戻す
-  await p.click('#app [data-tab="more"]'); await p.click('#screen [data-act="askWipe"]'); await p.click('[data-act="doWipe"]'); await p.waitForTimeout(200); const wiped = await n(p); await p.click('#toast [data-act="undo"]'); await p.waitForTimeout(150);
-  check('11 すべて消す → 元に戻す', [wiped, await n(p)], [0, 3]);
+  // 11. すべて消す（確認つき）
+  await p.click('#app [data-tab="more"]'); await p.click('#screen [data-act="askWipe"]'); const wmsg = await p.evaluate(() => document.querySelector('.dialog p').textContent); await p.click('[data-act="doWipe"]'); await p.waitForTimeout(200);
+  check('11 すべて消す', [await n(p), /消したあとは戻せません/.test(wmsg), await p.evaluate(() => __demo.db.machines.length)], [0, true, 6]);
 
   // 12. 保存データが壊れていたら、上書きせず別名で残して、空の状態で開く
   await p.evaluate(k => localStorage.setItem(k, '{こわれた'), F.KEY); await p.reload(); await p.waitForTimeout(450);
-  check('12 壊れた保存データ', await p.evaluate(k => [__demo.db.sessions.length, localStorage.getItem(k + '.broken'), /読み込めなかった/.test(document.querySelector('#toast')?.textContent || '')], F.KEY), [0, '{こわれた', true]);
+  check('12 壊れた保存データ', await p.evaluate(k => [__demo.db.sessions.length, localStorage.getItem(k + '.broken'), /読み込めなかった/.test(document.querySelector('#broken-note')?.textContent || '')], F.KEY), [0, '{こわれた', true]);
 
   // 13. 以前の版（サンプル表示つき）で保存したデータも、そのまま読める
   const old = await b.newContext({ viewport: { width: 402, height: 874 }, serviceWorkers: 'block' });

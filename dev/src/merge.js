@@ -51,7 +51,7 @@ const Merge = (() => {
         if (hl === hr) out.push(r);
         else if (b !== undefined && hl === b) out.push(r);                          // クラウド側だけが変えた
         else if (b !== undefined && hr === b) out.push(l);                          // この端末だけが変えた
-        else { out.push(onConflict(l, r)); conflicts.push(id); }                    // 両方が変えた
+        else { out.push(onConflict(l, r, b !== undefined)); conflicts.push(id); }   // 両方が変えた（控えが無いときは、初めての同期）
       } else if (l) { if (!(b !== undefined && fp(l) === b)) out.push(l); }         // クラウドで消されていて、こちらは触っていない → 消す。それ以外は残す
       else if (r) { if (!(b !== undefined && fp(r) === b)) out.push(r); }           // この端末で消していて、クラウドは触っていない → 消す
     }
@@ -60,13 +60,14 @@ const Merge = (() => {
   function mergeValue(l, r, b) {                                                    // 1つだけの値（条件・上限額）
     if (r == null) return l; if (l == null) return r;
     const hl = fp(l), hr = fp(r);
-    if (hl === hr) return r; if (b && hl === b) return r; return l;                 // 両方が変えていたら、いま使っている端末の値
+    if (hl === hr || !b || hl === b) return r;                                      // 同じ／初めての同期（クラウドを信じる）／クラウド側だけが変えた
+    return l;                                                                       // 両方が変えていたら、いま使っている端末の値
   }
 
   function merge(local, remote, base) {
     if (!remote) { remote = empty(); base = null; }                                 // クラウドに何も無いときは、消す判断をしない
     const ss = mergeList(local.sessions, remote.sessions, base && base.sessions, sessionConflict);
-    const ms = mergeList(local.machines, remote.machines, base && base.machines, l => l);
+    const ms = mergeList(local.machines, remote.machines, base && base.machines, (l, r, known) => (known ? l : r));   // 機種: 初めての同期ならクラウド、両方が変えていたらこの端末
     ss.out.sort((x, y) => num(x.createdAt) - num(y.createdAt) || (x.date < y.date ? -1 : x.date > y.date ? 1 : 0) || (x.id < y.id ? -1 : x.id > y.id ? 1 : 0));
     return { state: { v: 1, sessions: ss.out, machines: ms.out, store: mergeValue(local.store, remote.store, base && base.store), budget: mergeValue(local.budget, remote.budget, base && base.budget) },
       conflicts: ss.conflicts };

@@ -74,7 +74,7 @@ const root = path.join(__dirname, '..'); const DIST = path.join(root, 'dist');
   await sync(B); await closeSheets(B); await B.click('#app [data-tab="add"]'); await B.waitForTimeout(250); await B.fill('#f-p-0-cash', '9000'); await B.focus('#f-p-0-out'); await B.keyboard.type('12');
   await add(A, 'm2', 1000, 77); await sync(A); await sync(B);
   check('9 入力中でもデータは入り、入力欄はそのまま', [(await recs(B)).includes(':77'), await B.evaluate(() => [document.activeElement.id, document.querySelector('#f-p-0-cash').value, document.querySelector('#f-p-0-out').value])], [true, ['f-p-0-out', '9,000', '12']]);
-  await B.click('.sheet [data-act="closeSheet"]'); await B.waitForTimeout(200); await B.click('#screen [data-act="dropDraft"]'); await B.waitForTimeout(100);
+  await B.click('.sheet [data-act="closeSheet"]'); await B.waitForTimeout(200); await B.click('#screen [data-act="askDropDraft"]'); await B.click('[data-act="dropDraft"]'); await B.waitForTimeout(150);
 
   // ── 10. 上限額と条件も同期する
   await closeSheets(A); await A.click('#app [data-tab="more"]'); await A.click('#f-budget'); await A.waitForTimeout(80); await A.keyboard.press('Control+A'); await A.keyboard.type('65000'); await A.click('#app [data-tab="home"]'); check('10 欄の外を1回押せば画面が切り替わる', await A.evaluate(() => __demo.S.tab), 'home'); await sync(A); await sync(B);

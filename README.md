@@ -16,6 +16,7 @@ iPhone のホーム画面に追加して使う、個人用の収支記録アプ�
 | `sw.js` `manifest.webmanifest` `*.png` | ホーム画面用の設定、アイコン、オフライン起動 |
 | `dev/src/` | ソース（見た目 `head.html`、画面の骨組み `body.html`、計算 `calc.js`、画面の動き `app.js`、会員カード画像 `card.js`） |
 | `dev/src/merge.js` | 同期のとき、端末とクラウドのどちらを残すかを決める計算 |
+| `dev/src/catalog.js` | 機種名の一覧（正式名称・メーカー・種類・よみ／略称）と、打った文字から候補を探す仕組み。機種を足すときはここに1行足す |
 | `dev/tests/` | 自動テスト。`calc.test.js`＝計算、`merge.test.js`＝同期の合わせ込み、`app.js`＝画面の操作全般、`draft.js`＝入力途中の自動保存、`sync.js`＝2台の同期（にせの Firebase `mockfb.js` が相手）、`site.js`＝オフライン起動、`top.js`＝画面上部の余白。`fixture.js` はテスト用の記録データ |
 | `dev/icon/make_icon.py` | ホーム画面アイコン「D7E」を描くスクリプト（`dev/static/` に書き出す） |
 | `old/` | 置き換え前のアプリ |
@@ -42,5 +43,6 @@ cd dev
 OUT=.. ./build.sh          # ソースから index.html などを作り直す
 node tests/calc.test.js    # 計算のテスト
 node tests/merge.test.js   # 同期の合わせ込みのテスト
+node tests/catalog.test.js # 機種名の候補探しのテスト
 node tests/app.js          # 画面の操作テスト（Playwright が必要。draft.js / sync.js / site.js / top.js も同じ）
 ```

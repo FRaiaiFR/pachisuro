@@ -39,15 +39,6 @@ const inMonth = m => db.sessions.filter(s => s.date.startsWith(m));
 const mainStore = () => db.stores.find(s => s.main) || db.stores[0];
 const blankPlay = () => ({ machineId: '', cash: 0, savedIn: 0, carryIn: 0, out: 0, minutes: 0 });
 
-/* ---------- 最初から入っている機種（あとから追加できる） ---------- */
-const MACHINES0 = [
-  { id: 'm1', name: 'スマスロ北斗の拳', maker: 'サミー', type: 'スマスロ・AT' },
-  { id: 'm2', name: 'L 東京喰種', maker: 'スパイキー', type: 'スマスロ・AT' },
-  { id: 'm3', name: 'パチスロ 甲鉄城のカバネリ', maker: 'サミー', type: '6.5号機・AT' },
-  { id: 'm4', name: 'スマスロ モンキーターンV', maker: '山佐', type: 'スマスロ・AT' },
-  { id: 'm5', name: 'マイジャグラーV', maker: '北電子', type: '6号機・ノーマル' },
-  { id: 'm6', name: 'Lパチスロ 革命機ヴァルヴレイヴ', maker: 'SANKYO', type: 'スマスロ・AT' }
-];
 
 /* ---------- 端末内保存 ---------- */
 const KEY = 'dx7-shushi.v1';
@@ -55,7 +46,7 @@ const store = { ok: true, last: '', savedAt: 0, backupAt: 0 };
 function newMine() {
   return {
     stores: [{ id: 's1', name: 'デラックスセブン', lendPer1000: 47, exchX10: 50, dailyLimit: 470, initSaved: 0, main: true, card: typeof CARD_MAIN === 'string' ? CARD_MAIN : '' }],
-    machines: MACHINES0.map(m => ({ ...m, fav: false })), sessions: []
+    machines: Catalog.LIST.filter(e => /^m[1-6]$/.test(e.id)).map(e => ({ id: e.id, name: e.name, maker: e.maker, type: e.type, fav: false })), sessions: []
   };
 }
 function pack() {   // 同梱のカード画像は保存データに含めない（容量の節約）
@@ -164,10 +155,8 @@ async function syncNow(manual) {
   if (r && r.other) {            // ほかの端末の変更が入った。入力中なら画面は描き直さず、データだけ入れ替える
     if (S.sheet?.type === 'day' && !db.sessions.some(x => x.date === S.sheet.date)) S.sheet = null;
     if (typing()) persist(); else render();
-    if (r.changed) toast(`同期しました（記録 ${r.changed}件を更新）`);
   }
   paintSync();
-  if (manual && !(r && r.changed)) toast(sy.err ? cloudMsg(sy.err) : '同期しました');
   if (syAgain) { syAgain = false; scheduleSync(300); }
   else if (sy.err && sy.uid && !['PERMISSION_DENIED', 'TOO_BIG', 'BAD_REMOTE'].includes(sy.err)) scheduleSync(Math.min(600000, 30000 * 4 ** Math.min(4, syFail - 1)));   // 30秒 → 2分 → 8分 → 10分おきにやり直す
 }
@@ -211,7 +200,7 @@ function parseBackup(text) {
   const st0 = d.stores[0] || {};
   const stores = [{ id: 's1', name: 'デラックスセブン', lendPer1000: n(st0.lendPer1000) || 47, exchX10: n(st0.exchX10) || 50, dailyLimit: n(st0.dailyLimit), initSaved: n(st0.initSaved), main: true, card: str(st0.card).startsWith('data:image/') ? st0.card : CARD_MAIN }];
   const machines = [], mids = new Set();
-  for (const m of d.machines) { if (!m || !str(m.id) || !str(m.name) || mids.has(m.id)) continue; mids.add(m.id); machines.push({ id: m.id, name: m.name.slice(0, 60), maker: str(m.maker).slice(0, 40), type: str(m.type).slice(0, 40), fav: !!m.fav }); }
+  for (const m of d.machines) { if (!m || !str(m.id) || !str(m.name) || mids.has(m.id)) continue; mids.add(m.id); machines.push({ id: m.id, name: m.name.slice(0, 60), maker: str(m.maker).slice(0, 40), type: str(m.type).slice(0, 40), fav: !!m.fav, ...(m.gone ? { gone: true } : {}) }); }
   const sessions = [], sids = new Set(); let skipped = 0;
   for (const x of d.sessions) {
     if (!x || !/^\d{4}-\d{2}-\d{2}$/.test(str(x.date)) || !Array.isArray(x.plays) || !x.plays.length) { skipped++; continue; }
@@ -225,7 +214,7 @@ function parseBackup(text) {
   return { data: { stores, machines, sessions }, budget: n(o.settings && o.settings.budget), exportedAt: str(o.exportedAt), skipped };
 }
 const backupName = () => { const d = new Date(); return `dx7-shushi-backup-${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}.json`; };
-function markBackup(msg) { store.backupAt = Date.now(); store.last = ''; persist(); if (S.sheet) renderSheet(); else render(); toast(msg); }
+function markBackup(msg) { store.backupAt = Date.now(); store.last = ''; persist(); if (S.sheet?.type === 'backup') { S.sheet.info = msg; S.sheet.error = ''; renderSheet(); } else render(); }
 
 /* ---------- charts ---------- */
 function lineChart(points, h = 120) {
@@ -318,7 +307,8 @@ const views = {
   home() {
     const t = TODAY(), m = t.slice(0, 7), dt = pdate(t), B = S.basis;
     const head = `<header class="top"><div><p class="eyebrow">${dt.getFullYear()}年${dt.getMonth() + 1}月${dt.getDate()}日（${WD[dt.getDay()]}）</p><h1>ホーム</h1></div>${topRight()}</header>`;
-    const saveBar = store.ok ? '' : '<p class="banner err">このブラウザでは記録を保存できません。プライベートブラウズを解除するか、別のブラウザで開いてください。</p>';
+    const saveBar = (store.ok ? '' : '<p class="banner err">このブラウザでは記録を保存できません。プライベートブラウズを解除するか、別のブラウザで開いてください。</p>')
+      + (store.broken ? '<p class="banner err" id="broken-note">保存データを読み込めなかったため、空の状態で開いています。読めなかったデータは消さずに残してあります。</p>' : '');
     if (!db.sessions.length) return head + memberBlock() + saveBar + draftBar() + `<div class="empty"><b>まだ記録がありません</b><p>実戦を記録すると、今月の収支・貯メダル残高・推移がここに並びます。</p><button class="btn primary" data-act="tab" data-tab="add">最初の実戦を記録する</button><button class="btn line" data-act="editStore" data-id="${mainStore().id}">いまの貯メダル残高を登録する</button></div>`;
     const all = Calc.stats(db.sessions, B), mon = Calc.stats(inMonth(m), B), prev = Calc.stats(inMonth(addMonth(m, -1)), B), td = Calc.stats(db.sessions.filter(s => s.date === t), B);
     const use = S.budget > 0 ? mon.cash / S.budget : 0, left = S.budget - mon.cash;
@@ -456,8 +446,8 @@ const views = {
     <section class="card"><header><h2>月間の現金投資上限</h2></header>
       <label class="frow" for="f-budget" style="background:var(--raised)"><span>上限額</span><input id="f-budget" type="text" inputmode="numeric" pattern="[0-9]*" data-num value="${fin(S.budget)}" class="numin"><span>円</span></label>
       <p class="note">ホームの「今月の現金投資」に反映されます。80%を超えると注意、100%で超過と表示します。</p></section>
-    <section class="card"><header><h2>機種</h2><span class="sub">★はお気に入り</span></header>
-      <div class="list">${db.machines.map(mc => { const r = mach.get(mc.id); return `<div class="item" style="grid-template-columns:auto minmax(0,1fr) auto"><button data-act="fav" data-id="${mc.id}" aria-label="${esc(mc.name)}をお気に入り${mc.fav ? 'から外す' : 'に追加'}" aria-pressed="${mc.fav}" style="width:36px;height:44px;font-size:18px;color:${mc.fav ? 'var(--gold)' : 'var(--fg-3)'}">${mc.fav ? '★' : '☆'}</button><span><span class="tt">${esc(mc.name)}</span><span class="ss">${esc([mc.maker, mc.type].filter(Boolean).join('・') || '分類未設定')}</span></span><span class="rr">${r ? Y(r.yen) : '<span class="muted">—</span>'}<small>${r ? r.n : 0}回</small></span></div>`; }).join('')}</div></section>
+    <section class="card"><header><h2>機種</h2><span class="sub">★はお気に入り・✕で一覧から削除</span></header>
+      <div class="list">${db.machines.filter(mc => !mc.gone).map(mc => { const r = mach.get(mc.id); return `<div class="item" style="grid-template-columns:auto minmax(0,1fr) auto auto"><button data-act="fav" data-id="${mc.id}" aria-label="${esc(mc.name)}をお気に入り${mc.fav ? 'から外す' : 'に追加'}" aria-pressed="${mc.fav}" style="width:36px;height:44px;font-size:18px;color:${mc.fav ? 'var(--gold)' : 'var(--fg-3)'}">${mc.fav ? '★' : '☆'}</button><span><span class="tt">${esc(mc.name)}</span><span class="ss">${esc([mc.maker, mc.type].filter(Boolean).join('・') || '分類未設定')}</span></span><span class="rr">${r ? Y(r.yen) : '<span class="muted">—</span>'}<small>${r ? r.n : 0}回</small></span><button class="xbtn" data-act="askDelMachine" data-id="${mc.id}" aria-label="${esc(mc.name)}を一覧から削除">${svg('close')}</button></div>`; }).join('')}</div></section>
 `;
   }
 };
@@ -490,7 +480,7 @@ function draftBar() {
   if (S.sheet?.type === 'entry' && S.draft && !S.draft.id) return '';   // いま開いている最中は出さない
   const o = readDraft(DKEY); if (!o) return '';
   const d = o.draft, dt = pdate(d.date), n = d.plays.filter(p => p.machineId || p.cash || p.savedIn || p.carryIn || p.out).length;
-  return `<div class="banner two"><button data-act="resumeDraft">入力途中の記録があります（${dt.getMonth() + 1}月${dt.getDate()}日${n ? `・${n}台` : ''}）。<b>続きから入力 ›</b></button><button data-act="dropDraft" aria-label="入力途中の記録を破棄">破棄</button></div>`;
+  return `<div class="banner two"><button data-act="resumeDraft">入力途中の記録があります（${dt.getMonth() + 1}月${dt.getDate()}日${n ? `・${n}台` : ''}）。<b>続きから入力 ›</b></button><button data-act="askDropDraft" aria-label="入力途中の記録を破棄">破棄</button></div>`;
 }
 /* ---------- sheets ---------- */
 function draftRates() {
@@ -515,15 +505,15 @@ function numField(label, unit, f, val) {
 function openEntry(o = {}) {
   let d;
   const src = o.id && db.sessions.find(x => x.id === o.id);
-  if (src && o.copy) d = { id: null, date: TODAY(), storeId: src.storeId, plays: src.plays.map(p => ({ ...blankPlay(), machineId: p.machineId })), deposit: 0, cashOut: 0, manual: false, expense: src.expense, memo: '', more: !!src.expense, snap: null };
+  if (src && o.copy) d = { id: null, date: TODAY(), storeId: src.storeId, plays: src.plays.map(p => ({ ...blankPlay(), machineId: machineOf(p.machineId)?.gone ? '' : p.machineId })), deposit: 0, cashOut: 0, manual: false, expense: src.expense, memo: '', more: !!src.expense, snap: null };
   else if (src) { const c = Calc.session(src); d = { id: src.id, date: src.date, storeId: src.storeId, plays: src.plays.map(p => ({ ...p })), deposit: src.deposit, cashOut: src.cashOut, manual: src.cashOut !== Calc.autoCashOut(c.hand, src.deposit, src.exchX10), expense: src.expense, memo: src.memo || '', more: !!(src.expense || src.memo || c.minutes), snap: { storeId: src.storeId, lendPer1000: src.lendPer1000, exchX10: src.exchX10 } }; }
   else { d = { id: null, date: o.date || TODAY(), storeId: o.storeId || mainStore()?.id || '', plays: [blankPlay()], deposit: 0, cashOut: 0, manual: false, expense: 0, memo: '', more: false, snap: null }; }
   S.draft = d; draft0 = JSON.stringify(d); S.tried = false; S.sheet = { type: 'entry' }; S.enter = true; renderSheet();
 }
 // 新しい記録を始める。入力途中の記録が残っているときは、消してよいか先に確かめる
-function openNew(o, note) {
-  if (readDraft(DKEY)) { S.pending = { o, note, back: S.back }; S.confirm = { title: '入力途中の記録があります', msg: '新しく入力を始めると、入力途中の内容は消えます。続きを入力するときは「やめる」を押して、ホームの「続きから入力」を開いてください。', ok: '新しく入力する', act: 'replaceDraft', danger: true }; renderOverlay(); return; }
-  openEntry(o); if (note) toast(note);
+function openNew(o) {
+  if (readDraft(DKEY)) { S.pending = { o, back: S.back }; S.confirm = { title: '入力途中の記録があります', msg: '新しく入力を始めると、入力途中の内容は消えます。続きを入力するときは「やめる」を押して、ホームの「続きから入力」を開いてください。', ok: '新しく入力する', act: 'replaceDraft', danger: true }; renderOverlay(); return; }
+  openEntry(o);
 }
 const sheets = {
   sync() {
@@ -689,6 +679,7 @@ const sheets = {
       <section class="card"><header><h2>書き出す</h2><span class="sub">${has ? `記録 ${n}件` : ''}</span></header>
         ${has ? `<p class="note">記録${n ? `（${fmtMD(dates[0])}〜${fmtMD(dates[n - 1])}）` : ''}・機種・条件を、1つのファイルにまとめます。${store.backupAt ? `最後のバックアップ ${fmtTime(store.backupAt)}。` : ''}</p>
         <div class="grid2"><button class="btn primary sm" data-act="exportFile">ファイルに保存</button><button class="btn line sm" data-act="copyBackup">テキストをコピー</button></div>
+        ${sh.info ? `<p class="banner" role="status" id="bk-info">${esc(sh.info)}</p>` : ''}
         ${sh.text ? `<label class="field" for="bk-out"><span class="flabel">コピーできなかったときは、下を全選択してコピーしてください</span><textarea id="bk-out" class="mono" readonly rows="5">${esc(sh.text)}</textarea></label>` : ''}`
           : ''}
       </section>
@@ -747,11 +738,15 @@ function updateLive() {
 }
 
 function mlistHTML() {
-  const q = norm(S.picker.q || ''), cnt = new Map(Calc.byMachine(db.sessions).map(r => [r.id, r.n]));
-  const list = db.machines.filter(m => !q || norm(m.name + (m.maker || '')).includes(q)).sort((a, b) => (b.fav - a.fav) || ((cnt.get(b.id) || 0) - (cnt.get(a.id) || 0)));
-  const exact = db.machines.some(m => norm(m.name) === q);
+  const raw = (S.picker.q || '').trim(), q = norm(raw), cnt = new Map(Calc.byMachine(db.sessions).map(r => [r.id, r.n]));
+  const own = db.machines.filter(m => !m.gone);
+  const list = own.filter(m => !q || norm(m.name + (m.maker || '')).includes(q) || Catalog.matches(m, raw)).sort((a, b) => (b.fav - a.fav) || ((cnt.get(b.id) || 0) - (cnt.get(a.id) || 0)));
+  const haveId = new Set(own.map(m => m.id)), haveName = new Set(own.map(m => Catalog.key(m.name)));
+  const cands = Catalog.find(raw).filter(e => !haveId.has(e.id) && !haveName.has(Catalog.key(e.name)));      // 一覧にまだ無い機種の、正式名称の候補
+  const exact = own.some(m => norm(m.name) === q) || cands.some(e => norm(e.name) === q);
   return list.map(m => `<button class="mrow" data-act="chooseMachine" data-id="${m.id}"><span><b>${esc(m.name)}</b><small>${esc([m.maker, m.type].filter(Boolean).join('・') || '分類未設定')}・${cnt.get(m.id) || 0}回</small></span>${m.fav ? '<span class="st" aria-label="お気に入り">★</span>' : ''}</button>`).join('')
-    + (q && !exact ? `<button class="mrow new" data-act="newMachine"><span><b>「${esc(S.picker.q.trim())}」を新しい機種として追加</b><small>メーカーや分類はあとで設定できます</small></span></button>` : '')
+    + (cands.length ? '<p class="mhead">正式名称の候補</p>' + cands.map(e => `<button class="mrow cat" data-act="addCatalog" data-id="${e.id}"><span><b>${esc(e.name)}</b><small>${esc(e.maker)}・${esc(e.type)}</small></span><span class="add">追加</span></button>`).join('') : '')
+    + (q && !exact ? `<button class="mrow new" data-act="newMachine"><span><b>「${esc(raw)}」をこの名前のまま追加</b><small>${cands.length ? '候補に当てはまるものがないとき' : '正式名称の候補は見つかりませんでした'}</small></span></button>` : '')
     + (!list.length && !q ? '<p class="hint" style="padding:16px 0">機種がまだありません。名前を入力して追加してください。</p>' : '');
 }
 
@@ -787,13 +782,8 @@ function loadBackup(text) {
   if (r.error) { S.sheet.error = r.error; renderSheet(); return; }
   S.sheet.error = ''; S.incoming = r;
   const when = r.exportedAt && !isNaN(Date.parse(r.exportedAt)) ? fmtTime(Date.parse(r.exportedAt)) + ' に書き出した' : '';
-  S.confirm = { title: 'このバックアップで置き換えますか？', msg: `${when}バックアップ（記録 ${r.data.sessions.length}件${r.skipped ? `・読めなかった記録 ${r.skipped}件は除外` : ''}）を読み込みます。${mine ? `いまの記録 ${mine.sessions.length}件は置き換えられます。` : ''}直後なら「元に戻す」で戻せます。`, ok: '置き換える', act: 'doRestore', danger: !!(mine && mine.sessions.length) };
+  S.confirm = { title: 'このバックアップで置き換えますか？', msg: `${when}バックアップ（記録 ${r.data.sessions.length}件${r.skipped ? `・読めなかった記録 ${r.skipped}件は除外` : ''}）を読み込みます。${mine ? `いまの記録 ${mine.sessions.length}件は置き換えられます。` : ''}置き換えたあとは戻せません。`, ok: '置き換える', act: 'doRestore', danger: !!(mine && mine.sessions.length) };
   renderOverlay();
-}
-let toastTimer;
-function toast(msg, label, act) {
-  $('#toast').innerHTML = `<div class="toast" role="status"><span>${esc(msg)}</span>${label ? `<button data-act="${act}">${esc(label)}</button>` : ''}</div>`;
-  clearTimeout(toastTimer); toastTimer = setTimeout(() => { $('#toast').innerHTML = ''; }, label ? 6000 : 2200);
 }
 const closeSheet = () => { S.sheet = null; S.draft = null; S.picker = null; };
 function commit(force) {
@@ -816,7 +806,7 @@ function commit(force) {
   S.confirm = null; S.cal = s.date.slice(0, 7); dropDraft(draftKey());
   const back = S.back; closeSheet(); if (back) { S.sheet = { type: 'day', date: s.date }; }
   if (!d.id && !back) S.tab = 'home';
-  S.back = null; render(); toast(d.id ? '変更を保存しました' : '記録を保存しました');
+  S.back = null; render();
 }
 
 /* ---------- actions ---------- */
@@ -829,13 +819,14 @@ const A = {
   auditSheet() { S.sheet = { type: 'audit' }; S.enter = true; renderSheet(); },
   newOn(el) { S.back = S.sheet?.type === 'day'; openNew({ date: el.dataset.date }); },
   editRec(el) { S.back = true; openEntry({ id: el.dataset.id }); },
-  copyRec(el) { S.back = false; openNew({ id: el.dataset.id, copy: true }, '機種を引き継いで新しい記録を作成します'); },
-  replaceDraft() { const p = S.pending; S.pending = null; S.confirm = null; dropDraft(DKEY); renderOverlay(); if (!p) return; S.back = p.back; openEntry(p.o); if (p.note) toast(p.note); render(); },
+  copyRec(el) { S.back = false; openNew({ id: el.dataset.id, copy: true }); },
+  replaceDraft() { const p = S.pending; S.pending = null; S.confirm = null; dropDraft(DKEY); renderOverlay(); if (!p) return; S.back = p.back; openEntry(p.o); render(); },
   resumeDraft() { const o = readDraft(DKEY); if (o) resumeDraft(o); else render(); },
-  dropDraft() { let raw = null; try { raw = localStorage.getItem(DKEY); } catch (_) {} dropDraft(DKEY); S.undo = () => { try { if (raw) localStorage.setItem(DKEY, raw); } catch (_) {} }; render(); toast('入力途中の記録を破棄しました', '元に戻す', 'undo'); },
+  askDropDraft() { S.confirm = { title: '入力途中の記録を破棄しますか？', msg: '打ちかけの内容を消します。消したあとは戻せません。', ok: '破棄する', act: 'dropDraft', danger: true }; renderOverlay(); },
+  dropDraft() { dropDraft(DKEY); S.confirm = null; render(); },
   closeSheet() { const back = S.sheet?.type === 'entry' && S.back && S.draft ? S.draft.date : null;
-    let kept = false; if (S.sheet?.type === 'entry' && S.draft) { if (S.draft.id) dropDraft(EKEY); else { saveDraft(false); kept = JSON.stringify(S.draft) !== draft0; } }
-    closeSheet(); if (kept) toast('入力途中の内容を残しました'); S.back = null; if (back && db.sessions.some(s => s.date === back)) S.sheet = { type: 'day', date: back }; render(); },
+    if (S.sheet?.type === 'entry' && S.draft) { if (S.draft.id) dropDraft(EKEY); else saveDraft(false); }
+    closeSheet(); S.back = null; if (back && db.sessions.some(s => s.date === back)) S.sheet = { type: 'day', date: back }; render(); },
   rules() { S.sheet = { type: 'rules' }; S.enter = true; renderSheet(); },
   addPlay() { S.draft.plays.push(blankPlay()); renderSheet(); const b = $('.sh-body'), card = b.querySelectorAll('.pcard')[S.draft.plays.length - 1]; if (card) { const k = b.offsetHeight / (b.getBoundingClientRect().height || 1); b.scrollTop += (card.getBoundingClientRect().top - b.getBoundingClientRect().top) * k - 12; } },
   delPlay(el) { S.draft.plays.splice(+el.dataset.i, 1); renderSheet(); },
@@ -848,7 +839,17 @@ const A = {
   pickMachine(el) { S.picker = { i: +el.dataset.i, q: '' }; renderOverlay(); },
   closePicker() { S.picker = null; renderOverlay(); },
   chooseMachine(el) { S.draft.plays[S.picker.i].machineId = el.dataset.id; S.picker = null; renderOverlay(); renderSheet(); },
-  newMachine() { const name = S.picker.q.trim(); if (!name) return; let m = db.machines.find(x => norm(x.name) === norm(name)); if (!m) { m = { id: uid(), name, maker: '', type: '', fav: false }; db.machines.push(m); } S.draft.plays[S.picker.i].machineId = m.id; S.picker = null; renderOverlay(); renderSheet(); toast(`「${name}」を追加しました`); },
+  newMachine() { const name = S.picker.q.trim(); if (!name) return; let m = db.machines.find(x => norm(x.name) === norm(name)); if (m) delete m.gone; else { m = { id: uid(), name, maker: '', type: '', fav: false }; db.machines.push(m); } S.draft.plays[S.picker.i].machineId = m.id; S.picker = null; renderOverlay(); renderSheet(); },
+  addCatalog(el) {      // 正式名称の候補から追加する。以前に削除した同じ機種があれば、それを一覧に戻す
+    const e = Catalog.byId(el.dataset.id); if (!e || !S.picker) return; let m = db.machines.find(x => x.id === e.id || norm(x.name) === norm(e.name));
+    if (m) delete m.gone; else { m = { id: e.id, name: e.name, maker: e.maker, type: e.type, fav: false }; db.machines.push(m); }
+    S.draft.plays[S.picker.i].machineId = m.id; S.picker = null; renderOverlay(); renderSheet();
+  },
+  askDelMachine(el) {
+    const m = machineOf(el.dataset.id); if (!m) return; const n = db.sessions.filter(x => x.plays.some(p => p.machineId === m.id)).length;
+    S.confirm = { title: `「${m.name}」を一覧から削除しますか？`, msg: (n ? `この機種を使った記録 ${n}件は、機種名つきでそのまま残ります。新しい記録では選べなくなります。` : '機種を選ぶ一覧から消えます。') + '同じ名前を追加し直せば、また選べます。', ok: '削除する', act: 'doDelMachine', danger: true, id: m.id }; renderOverlay();
+  },
+  doDelMachine() { const m = machineOf(S.confirm.id); if (m) { m.gone = true; m.fav = false; } S.confirm = null; render(); },   // 記録が名前を引けるよう、機種そのものは消さずに「一覧から外す」印を付ける
   fav(el) { const m = machineOf(el.dataset.id); m.fav = !m.fav; render(); },
   syncSheet() { S.sy = { email: (S.sy && S.sy.email) || sy.email || '', pw: '', busy: false, msg: '', err: '' }; S.sheet = { type: 'sync' }; S.enter = true; renderSheet(); },
   async syAuth(op) {
@@ -871,19 +872,18 @@ const A = {
   },
   syNow() { if (S.sy) { S.sy.err = ''; S.sy.msg = ''; } return syncNow(true); },
   askSyLogout() { S.confirm = { title: 'ログアウトしますか？', msg: 'この端末の記録は消えません。ログアウトしている間は、クラウドへ保存されなくなります。', ok: 'ログアウト', act: 'doSyLogout' }; renderOverlay(); },
-  doSyLogout() { clearTimeout(syTimer); sy.uid = ''; sy.id = ''; sy.refresh = ''; sy.exp = 0; sy.err = ''; saveSy(); S.confirm = null; if (S.sy) { S.sy.err = ''; S.sy.msg = ''; } render(); toast('ログアウトしました。この端末の記録はそのまま残っています'); },
+  doSyLogout() { clearTimeout(syTimer); sy.uid = ''; sy.id = ''; sy.refresh = ''; sy.exp = 0; sy.err = ''; saveSy(); S.confirm = null; if (S.sy) { S.sy.err = ''; S.sy.msg = ''; } render(); },
   askSyRevert() { S.confirm = { title: '同期で書き換わる前の状態に戻しますか？', msg: 'この端末の記録を、最後に同期で書き換わる直前の内容に戻します。戻した内容は、次の同期でクラウドにも反映されます。', ok: '戻す', act: 'doSyRevert', danger: true }; renderOverlay(); },
   doSyRevert() {
     S.confirm = null; let st = null; try { st = parseRemote(JSON.stringify(JSON.parse(localStorage.getItem(SAFE)).state)); } catch (_) {}
-    if (!st || !mine) { renderOverlay(); return toast('戻せる内容が見つかりませんでした'); }
-    applyState(st); try { localStorage.removeItem(SAFE); } catch (_) {} render(); toast('同期で書き換わる前の状態に戻しました');
+    if (!st || !mine) { if (S.sy) S.sy.err = '戻せる内容が見つかりませんでした。'; return render(); }
+    applyState(st); try { localStorage.removeItem(SAFE); } catch (_) {} if (S.sy) S.sy.msg = '同期で書き換わる前の状態に戻しました。'; render();
   },
   save() { commit(false); },
   saveForce() { commit(true); },
   cancelConfirm() { S.confirm = null; S.pending = null; renderOverlay(); },
-  askDel(el) { S.confirm = { title: 'この記録を削除しますか？', msg: '削除した直後なら「元に戻す」で復元できます。', ok: '削除する', act: 'doDel', danger: true, id: el.dataset.id }; renderOverlay(); },
-  doDel() { const t = db, i = t.sessions.findIndex(x => x.id === S.confirm.id); const [gone] = t.sessions.splice(i, 1); S.undo = () => { t.sessions.splice(i, 0, gone); }; S.confirm = null; if (S.sheet?.type === 'day' && !db.sessions.some(x => x.date === S.sheet.date)) S.sheet = null; render(); toast('記録を削除しました', '元に戻す', 'undo'); },
-  undo() { if (!S.undo) return; S.undo(); S.undo = null; render(); toast('元に戻しました'); },
+  askDel(el) { S.confirm = { title: 'この記録を削除しますか？', msg: '削除したあとは戻せません。', ok: '削除する', act: 'doDel', danger: true, id: el.dataset.id }; renderOverlay(); },
+  doDel() { const t = db, i = t.sessions.findIndex(x => x.id === S.confirm.id); if (i >= 0) t.sessions.splice(i, 1); S.confirm = null; if (S.sheet?.type === 'day' && !db.sessions.some(x => x.date === S.sheet.date)) S.sheet = null; render(); },
   editStore(el) { const s = storeOf(el.dataset.id) || mainStore(); S.sd = { id: s.id, lend: String(s.lendPer1000), exch: String(s.exchX10), limit: String(s.dailyLimit || ''), init: String(s.initSaved || ''), card: s.card || '' }; S.prevSheet = S.sheet; S.sheet = { type: 'store' }; S.enter = true; renderSheet(); },
   storeView(el) { S.sheet = { type: 'storeView', id: el.dataset.id }; S.enter = true; renderSheet(); },
   closeStore() { S.sheet = S.prevSheet || null; S.prevSheet = null; S.sd = null; S.enter = false; render(); },
@@ -893,15 +893,15 @@ const A = {
     if (!(exch >= 10 && exch <= 500) || String(exch) !== d.exch.trim()) errs.push('交換枚数は10〜500の整数で入力してください（例：50枚で1,000円なら 50）');
     if (errs.length) { $('#store-msg').innerHTML = errs.map(e => `<p class="banner err" role="alert" style="margin-bottom:8px">${esc(e)}</p>`).join(''); return; }
     Object.assign(storeOf(d.id), { lendPer1000: lend, exchX10: exch, dailyLimit: Calc.n(d.limit), initSaved: Calc.n(d.init), card: d.card });
-    A.closeStore(); toast('条件を保存しました');
+    A.closeStore();
   },
-  askWipe() { S.confirm = { title: `記録 ${mine.sessions.length}件をすべて消しますか？`, msg: '実戦の記録をすべて削除します。機種と条件は残ります。消した直後なら「元に戻す」で復元できますが、ページを閉じると戻せません。', ok: 'すべて消す', act: 'doWipe', danger: true }; renderOverlay(); },
-  doWipe() { const m = mine, prev = m.sessions; m.sessions = []; S.undo = () => { m.sessions = prev; }; S.confirm = null; closeSheet(); render(); toast('記録をすべて消しました', '元に戻す', 'undo'); },
-  backup() { S.sheet = { type: 'backup', text: '', error: '' }; S.enter = true; renderSheet(); },
+  askWipe() { S.confirm = { title: `記録 ${mine.sessions.length}件をすべて消しますか？`, msg: '実戦の記録をすべて削除します。機種と条件は残ります。消したあとは戻せません。先にバックアップを書き出しておくと安心です。', ok: 'すべて消す', act: 'doWipe', danger: true }; renderOverlay(); },
+  doWipe() { mine.sessions = []; S.confirm = null; closeSheet(); render(); },
+  backup() { S.sheet = { type: 'backup', text: '', error: '', info: '' }; S.enter = true; renderSheet(); },
   exportFile() {
     if (!mine) return; const text = backupText(), name = backupName();
     const manual = () => { const a = document.createElement('a'), url = URL.createObjectURL(new Blob([text], { type: 'application/json' })); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 5000); markBackup('書き出しを始めました。保存されないときは「テキストをコピー」を使ってください'); };
-    if (DL) { DL.save({ filename: name, data: text }).then(() => markBackup('バックアップを書き出しました'), e => toast(e && e.code === 'declined' ? '書き出しを取り消しました' : 'ファイルに保存できませんでした。「テキストをコピー」を使ってください')); return; }
+    if (DL) { DL.save({ filename: name, data: text }).then(() => markBackup('バックアップを書き出しました'), e => { if (S.sheet?.type === 'backup') { S.sheet.info = ''; S.sheet.error = e && e.code === 'declined' ? '' : 'ファイルに保存できませんでした。「テキストをコピー」を使ってください。'; renderSheet(); } }); return; }
     try { const f = new File([text], name, { type: 'application/json' }); if (navigator.canShare && navigator.canShare({ files: [f] })) { navigator.share({ files: [f] }).then(() => markBackup('バックアップを書き出しました'), e => { if (!e || e.name !== 'AbortError') manual(); }); return; } } catch (_) {}
     manual();
   },
@@ -911,10 +911,9 @@ const A = {
   },
   readPasted() { loadBackup(($('#bk-in') || {}).value || ''); },
   doRestore() {
-    const inc = S.incoming; if (!inc) return; const prev = { mine, budget: S.budget };
+    const inc = S.incoming; if (!inc) return;
     mine = inc.data; db = mine; if (inc.budget) S.budget = inc.budget; S.incoming = null; S.confirm = null;
-    S.undo = () => { mine = prev.mine; db = mine; S.budget = prev.budget; };
-    closeSheet(); S.tab = 'home'; S.cal = TODAY().slice(0, 7); render(); toast(`記録 ${mine.sessions.length}件を復元しました`, '元に戻す', 'undo');
+    closeSheet(); S.tab = 'home'; S.cal = TODAY().slice(0, 7); render();
   }
 };
 
@@ -951,7 +950,7 @@ document.addEventListener('change', e => {
       const k = Math.min(1, 900 / im.width), c = document.createElement('canvas'); c.width = Math.round(im.width * k); c.height = Math.round(im.height * k);
       c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
       if (S.sd) { S.sd.card = c.toDataURL('image/jpeg', 0.82); const pv = $('#sf-prev'); if (pv) pv.innerHTML = `<span class="cardimg"><img src="${S.sd.card}" alt="会員カードのプレビュー"></span>`; }
-    }; im.onerror = () => toast('画像を読み込めませんでした。別の画像を選んでください'); im.src = fr.result; };
+    }; im.onerror = () => { const m = $('#store-msg'); if (m) m.innerHTML = '<p class="banner err" role="alert" style="margin-bottom:8px">画像を読み込めませんでした。別の画像を選んでください。</p>'; }; im.src = fr.result; };
     fr.readAsDataURL(e.target.files[0]);
   }
 });
@@ -972,14 +971,13 @@ function tick() { const d = new Date(); $('#clock').textContent = `${d.getHours(
 function start(data) {
   const saved = restore(), keep = (data && data.S) || {}; loadSy();
   S = Object.assign({ tab: 'home', period: 'all', cal: TODAY().slice(0, 7) }, keep, { basis: 'eval', budget: saved ? Calc.n(saved.settings?.budget) || 80000 : 80000 },
-    { sheet: null, draft: null, picker: null, confirm: null, sd: null, undo: null, back: null, pending: null, tried: false, enter: false });
+    { sheet: null, draft: null, picker: null, confirm: null, sd: null, back: null, pending: null, tried: false, enter: false });
   mine = (saved && saved.mine) || newMine(); db = mine;
   try { navigator.storage && navigator.storage.persist && navigator.storage.persist().catch(() => {}); } catch (_) {}   // ブラウザに「勝手に消さないで」と頼んでおく
   fit(); tick(); render();
   const de = readDraft(EKEY), dn = readDraft(DKEY), dr = de && de.open ? de : dn && dn.open ? dn : null;
   if (!de) dropDraft(EKEY);
-  if (dr) { resumeDraft(dr); render(); toast('入力途中の内容を復元しました'); }
-  if (store.broken) toast('保存データを読み込めなかったため、空の状態で開いています');
+  if (dr) { resumeDraft(dr); render(); }
   scheduleSync(400);
 }
 addEventListener('resize', fit); setInterval(tick, 20000);

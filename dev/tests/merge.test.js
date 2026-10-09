@@ -47,6 +47,18 @@ test('機種: 両方で足した機種はどちらも残り、並びはクラウ
   assert.deepStrictEqual(onA.state.machines.map(m => m.id), ['m1', 'x2', 'x1']);
   const onB = M.merge(st([], { machines: [...b0.machines, mB] }), clone(onA.state), base); assert.ok(M.same(onB.state, onA.state));
 });
+test('初めての同期（控えがない）で値が食い違ったら、クラウドの値を採る（新しい端末の初期値で上書きしない）', () => {
+  const cloud = st([rec('a', 1)], { budget: 60000, store: { lendPer1000: 46, exchX10: 50, dailyLimit: 470, initSaved: 300 }, machines: [{ id: 'm1', name: '北斗', fav: true }, { id: 'm2', name: '喰種', fav: false, gone: true }] });
+  const fresh = st([], { budget: 80000, machines: [{ id: 'm1', name: '北斗', fav: false }, { id: 'm2', name: '喰種', fav: false }] });
+  const m = M.merge(fresh, clone(cloud), null);
+  assert.ok(M.same(m.state, cloud));
+});
+test('クラウドがまだ空なら、この端末の値がそのまま上がる', () => { const l = st([], { budget: 50000 }); assert.strictEqual(M.merge(l, null, null).state.budget, 50000); });
+test('機種の削除（一覧から外す印）は、ほかの端末にも伝わる', () => {
+  const b0 = st([]), base = M.snapshot(b0), del = st([], { machines: [{ id: 'm1', name: '北斗', fav: false, gone: true }] });
+  assert.strictEqual(M.merge(clone(b0), clone(del), base).state.machines[0].gone, true);
+  assert.strictEqual(M.merge(clone(del), clone(b0), base).state.machines[0].gone, true);
+});
 test('2台でばらばらに操作して同期をくり返しても、最後は同じ内容にそろう（500通り）', () => {
   let seed = 12345; const rnd = k => { seed = (Math.imul(seed, 1103515245) + 12345) & 0x7fffffff; return seed % k; };
   for (let round = 0; round < 500; round++) {
