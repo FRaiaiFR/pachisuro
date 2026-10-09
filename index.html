@@ -321,6 +321,10 @@ svg.chart{display:block;width:100%;height:auto;overflow:visible}
 .cardpick .cardimg.ph{padding:10px;justify-content:center;align-items:center}
 .banner.tap{display:block;width:100%;text-align:left;min-height:44px}
 .banner b{font-weight:700;white-space:nowrap}
+.banner.two{display:flex;align-items:stretch;padding:0}
+.banner.two button{min-height:44px;padding:10px 12px;text-align:left;line-height:1.6}
+.banner.two button:first-child{flex:1;min-width:0}
+.banner.two button:last-child{flex:none;padding-inline:14px;font-weight:700;box-shadow:inset 1px 0 0 var(--line-2)}
 button.pill{min-height:28px}
 .empty .btn{min-width:240px}
 .legend i.lx{background:var(--fg)} .legend i.ls{background:var(--gold)} .legend i.ll{background:var(--fg-3);opacity:.5}
@@ -832,12 +836,12 @@ const views = {
     const t = TODAY(), m = t.slice(0, 7), dt = pdate(t), B = S.basis;
     const head = `<header class="top"><div><p class="eyebrow">${dt.getFullYear()}年${dt.getMonth() + 1}月${dt.getDate()}日（${WD[dt.getDay()]}）</p><h1>ホーム</h1></div>${topRight()}</header>`;
     const sampleBar = S.mode === 'sample' ? '<button class="banner tap" data-act="askMine">サンプルの数字を表示しています。<b>自分の記録を始める ›</b></button>' : !store.ok ? '<p class="banner err">このブラウザでは記録を保存できません。プライベートブラウズを解除するか、別のブラウザで開いてください。</p>' : '';
-    if (!db.sessions.length) return head + memberBlock() + sampleBar + `<div class="empty"><b>まだ記録がありません</b><p>実戦を記録すると、今月の収支・貯メダル残高・推移がここに並びます。</p><button class="btn primary" data-act="tab" data-tab="add">最初の実戦を記録する</button>${S.mode === 'mine' ? `<button class="btn line" data-act="editStore" data-id="${mainStore().id}">いまの貯メダル残高を登録する</button>` : ''}</div>`;
+    if (!db.sessions.length) return head + memberBlock() + sampleBar + draftBar() + `<div class="empty"><b>まだ記録がありません</b><p>実戦を記録すると、今月の収支・貯メダル残高・推移がここに並びます。</p><button class="btn primary" data-act="tab" data-tab="add">最初の実戦を記録する</button>${S.mode === 'mine' ? `<button class="btn line" data-act="editStore" data-id="${mainStore().id}">いまの貯メダル残高を登録する</button>` : ''}</div>`;
     const all = Calc.stats(db.sessions, B), mon = Calc.stats(inMonth(m), B), prev = Calc.stats(inMonth(addMonth(m, -1)), B), td = Calc.stats(db.sessions.filter(s => s.date === t), B);
     const use = S.budget > 0 ? mon.cash / S.budget : 0, left = S.budget - mon.cash;
     const recent = all.days.slice(-5).reverse();
     const nf2 = flagged().length, auditBar = nf2 ? `<button class="banner tap" data-act="auditSheet">二重チェックで確認したい記録が ${nf2}件あります。<b>内容を見る ›</b></button>` : '';
-    return head + memberBlock() + sampleBar + auditBar + `
+    return head + memberBlock() + sampleBar + draftBar() + auditBar + `
     <section class="hero">
       <div class="lab"><span>${dt.getMonth() + 1}月の収支</span><span class="pill">メダル評価込み</span></div>
       <div class="big">${Y(mon.result, { arrow: true })}</div>
@@ -976,6 +980,36 @@ const views = {
   }
 };
 
+/* ---------- 入力途中の自動保存 ----------
+   入力画面の内容を、変わるたびに端末へ書いておく。アプリが閉じられても、次に開いたとき続きから入力できる。
+   新しい記録の下書き（DKEY）は「閉じる」を押しても残す。既存の記録の編集中（EKEY）は、閉じたら取り消し。 */
+const DKEY = 'dx7-shushi.draft.v1', EKEY = 'dx7-shushi.draft-edit.v1';
+let draft0 = '';                                     // 入力画面を開いた時点の内容（これと同じなら、まだ何も打っていない）
+const draftKey = () => (S.draft && S.draft.id ? EKEY : DKEY);
+function readDraft(key) {
+  try {
+    const o = JSON.parse(localStorage.getItem(key) || 'null');
+    if (!o || o.mode !== S.mode || !o.draft || !Array.isArray(o.draft.plays) || !o.draft.plays.length) return null;
+    if (key === EKEY ? !db.sessions.some(x => x.id === o.draft.id) : o.draft.id) return null;
+    const d = o.draft, have = new Set(db.machines.map(m => m.id));
+    o.draft = { id: d.id || null, date: /^\d{4}-\d{2}-\d{2}$/.test(d.date) ? d.date : TODAY(), storeId: d.storeId || mainStore()?.id || '',
+      plays: d.plays.map(p => ({ ...blankPlay(), ...p, machineId: have.has(p.machineId) ? p.machineId : '' })),
+      deposit: Calc.n(d.deposit), cashOut: Calc.n(d.cashOut), manual: !!d.manual, expense: Calc.n(d.expense), memo: String(d.memo || ''), more: !!d.more, snap: d.snap || null };
+    return o;
+  } catch (_) { return null; }
+}
+function saveDraft(open = true) {
+  if (!S.draft || S.sheet?.type !== 'entry') return;
+  try { if (JSON.stringify(S.draft) !== draft0) localStorage.setItem(draftKey(), JSON.stringify({ at: Date.now(), mode: S.mode, open, back: !!S.back, draft: S.draft })); } catch (_) {}
+}
+const dropDraft = key => { try { localStorage.removeItem(key); } catch (_) {} };
+function resumeDraft(o) { S.draft = o.draft; draft0 = ''; S.back = o.draft.id ? !!o.back : null; S.tried = false; S.sheet = { type: 'entry' }; S.enter = true; renderSheet(); saveDraft(); }
+function draftBar() {
+  if (S.sheet?.type === 'entry' && S.draft && !S.draft.id) return '';   // いま開いている最中は出さない
+  const o = readDraft(DKEY); if (!o) return '';
+  const d = o.draft, dt = pdate(d.date), n = d.plays.filter(p => p.machineId || p.cash || p.savedIn || p.carryIn || p.out).length;
+  return `<div class="banner two"><button data-act="resumeDraft">入力途中の記録があります（${dt.getMonth() + 1}月${dt.getDate()}日${n ? `・${n}台` : ''}）。<b>続きから入力 ›</b></button><button data-act="dropDraft" aria-label="入力途中の記録を破棄">破棄</button></div>`;
+}
 /* ---------- sheets ---------- */
 function draftRates() {
   const d = S.draft, st = storeOf(d.storeId);
@@ -1002,7 +1036,12 @@ function openEntry(o = {}) {
   if (src && o.copy) d = { id: null, date: TODAY(), storeId: src.storeId, plays: src.plays.map(p => ({ ...blankPlay(), machineId: p.machineId })), deposit: 0, cashOut: 0, manual: false, expense: src.expense, memo: '', more: !!src.expense, snap: null };
   else if (src) { const c = Calc.session(src); d = { id: src.id, date: src.date, storeId: src.storeId, plays: src.plays.map(p => ({ ...p })), deposit: src.deposit, cashOut: src.cashOut, manual: src.cashOut !== Calc.autoCashOut(c.hand, src.deposit, src.exchX10), expense: src.expense, memo: src.memo || '', more: !!(src.expense || src.memo || c.minutes), snap: { storeId: src.storeId, lendPer1000: src.lendPer1000, exchX10: src.exchX10 } }; }
   else { d = { id: null, date: o.date || TODAY(), storeId: o.storeId || mainStore()?.id || '', plays: [blankPlay()], deposit: 0, cashOut: 0, manual: false, expense: 0, memo: '', more: false, snap: null }; }
-  S.draft = d; S.tried = false; S.sheet = { type: 'entry' }; S.enter = true; renderSheet();
+  S.draft = d; draft0 = JSON.stringify(d); S.tried = false; S.sheet = { type: 'entry' }; S.enter = true; renderSheet();
+}
+// 新しい記録を始める。入力途中の記録が残っているときは、消してよいか先に確かめる
+function openNew(o, note) {
+  if (readDraft(DKEY)) { S.pending = { o, note, back: S.back }; S.confirm = { title: '入力途中の記録があります', msg: '新しく入力を始めると、入力途中の内容は消えます。続きを入力するときは「やめる」を押して、ホームの「続きから入力」を開いてください。', ok: '新しく入力する', act: 'replaceDraft', danger: true }; renderOverlay(); return; }
+  openEntry(o); if (note) toast(note);
 }
 const sheets = {
   entry() {
@@ -1256,7 +1295,7 @@ function commit(force) {
     s.history = Calc.diffSession(before, s).length ? (old.history || []).concat([{ at: now, before }]).slice(-20) : (old.history || []);
     db.sessions[i] = s;
   } else { s.id = uid(); s.createdAt = now; db.sessions.push(s); }
-  S.confirm = null; S.cal = s.date.slice(0, 7);
+  S.confirm = null; S.cal = s.date.slice(0, 7); dropDraft(draftKey());
   const back = S.back; closeSheet(); if (back) { S.sheet = { type: 'day', date: s.date }; }
   if (!d.id && !back) S.tab = 'home';
   S.back = null; render(); toast(d.id ? '変更を保存しました' : '記録を保存しました');
@@ -1264,17 +1303,22 @@ function commit(force) {
 
 /* ---------- actions ---------- */
 const A = {
-  tab(el) { if (el.dataset.tab === 'add') { S.back = null; return openEntry(); } closeSheet(); S.tab = el.dataset.tab; if (S.tab === 'cal') S.cal = S.cal || TODAY().slice(0, 7); render(); },
+  tab(el) { if (el.dataset.tab === 'add') { const o = readDraft(DKEY); if (S.draft && S.sheet?.type === 'entry') return; S.back = null; return o ? resumeDraft(o) : openEntry(); } closeSheet(); S.tab = el.dataset.tab; if (S.tab === 'cal') S.cal = S.cal || TODAY().slice(0, 7); render(); },
   period(el) { S.period = el.dataset.p; render(); },
   theme(el) { S.look = el.dataset.t; applyTheme(); render(); },
   calMove(el) { if (el.disabled) return; S.cal = addMonth(S.cal, +el.dataset.k); render(); },
   day(el) { S.sheet = { type: 'day', date: el.dataset.date }; S.enter = true; renderSheet(); },
   toggleHist(el) { S.sheet.hist = S.sheet.hist === el.dataset.id ? null : el.dataset.id; renderSheet(); },
   auditSheet() { S.sheet = { type: 'audit' }; S.enter = true; renderSheet(); },
-  newOn(el) { S.back = S.sheet?.type === 'day'; openEntry({ date: el.dataset.date }); },
+  newOn(el) { S.back = S.sheet?.type === 'day'; openNew({ date: el.dataset.date }); },
   editRec(el) { S.back = true; openEntry({ id: el.dataset.id }); },
-  copyRec(el) { S.back = false; openEntry({ id: el.dataset.id, copy: true }); toast('機種を引き継いで新しい記録を作成します'); },
-  closeSheet() { const back = S.sheet?.type === 'entry' && S.back && S.draft ? S.draft.date : null; closeSheet(); S.back = null; if (back && db.sessions.some(s => s.date === back)) S.sheet = { type: 'day', date: back }; render(); },
+  copyRec(el) { S.back = false; openNew({ id: el.dataset.id, copy: true }, '機種を引き継いで新しい記録を作成します'); },
+  replaceDraft() { const p = S.pending; S.pending = null; S.confirm = null; dropDraft(DKEY); renderOverlay(); if (!p) return; S.back = p.back; openEntry(p.o); if (p.note) toast(p.note); render(); },
+  resumeDraft() { const o = readDraft(DKEY); if (o) resumeDraft(o); else render(); },
+  dropDraft() { let raw = null; try { raw = localStorage.getItem(DKEY); } catch (_) {} dropDraft(DKEY); S.undo = () => { try { if (raw) localStorage.setItem(DKEY, raw); } catch (_) {} }; render(); toast('入力途中の記録を破棄しました', '元に戻す', 'undo'); },
+  closeSheet() { const back = S.sheet?.type === 'entry' && S.back && S.draft ? S.draft.date : null;
+    let kept = false; if (S.sheet?.type === 'entry' && S.draft) { if (S.draft.id) dropDraft(EKEY); else { saveDraft(false); kept = JSON.stringify(S.draft) !== draft0; } }
+    closeSheet(); if (kept) toast('入力途中の内容を残しました'); S.back = null; if (back && db.sessions.some(s => s.date === back)) S.sheet = { type: 'day', date: back }; render(); },
   rules() { S.sheet = { type: 'rules' }; S.enter = true; renderSheet(); },
   addPlay() { S.draft.plays.push(blankPlay()); renderSheet(); const b = $('.sh-body'), card = b.querySelectorAll('.pcard')[S.draft.plays.length - 1]; if (card) { const k = b.offsetHeight / (b.getBoundingClientRect().height || 1); b.scrollTop += (card.getBoundingClientRect().top - b.getBoundingClientRect().top) * k - 12; } },
   delPlay(el) { S.draft.plays.splice(+el.dataset.i, 1); renderSheet(); },
@@ -1291,7 +1335,7 @@ const A = {
   fav(el) { const m = machineOf(el.dataset.id); m.fav = !m.fav; render(); },
   save() { commit(false); },
   saveForce() { commit(true); },
-  cancelConfirm() { S.confirm = null; renderOverlay(); },
+  cancelConfirm() { S.confirm = null; S.pending = null; renderOverlay(); },
   askDel(el) { S.confirm = { title: 'この記録を削除しますか？', msg: '削除した直後なら「元に戻す」で復元できます。', ok: '削除する', act: 'doDel', danger: true, id: el.dataset.id }; renderOverlay(); },
   doDel() { const t = db, i = t.sessions.findIndex(x => x.id === S.confirm.id); const [gone] = t.sessions.splice(i, 1); S.undo = () => { t.sessions.splice(i, 0, gone); }; S.confirm = null; if (S.sheet?.type === 'day' && !db.sessions.some(x => x.date === S.sheet.date)) S.sheet = null; render(); toast('記録を削除しました', '元に戻す', 'undo'); },
   undo() { if (!S.undo) return; S.undo(); S.undo = null; render(); toast('元に戻しました'); },
@@ -1342,18 +1386,19 @@ document.addEventListener('click', e => {
   if (ov === 'confirm') return A.cancelConfirm();
   const el = e.target.closest('[data-act]'); if (!el) return;
   const fn = A[el.dataset.act]; if (fn) fn(el, e);
+  saveDraft();
 });
 const digits = v => v.replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0)).replace(/[^\d]/g, '').slice(0, 7);
 document.addEventListener('input', e => {
   const el = e.target, d = S.draft;
   if (el.dataset.f && d) {
     const f = el.dataset.f;
-    if (f === 'date') { if (el.value) d.date = el.value; updateLive(); return; }
-    if (f === 'memo') { d.memo = el.value; return; }
+    if (f === 'date') { if (el.value) d.date = el.value; updateLive(); saveDraft(); return; }
+    if (f === 'memo') { d.memo = el.value; saveDraft(); return; }
     const v = digits(el.value); if (v !== el.value) el.value = v;
     const num = v === '' ? 0 : parseInt(v, 10);
     if (f.startsWith('p.')) { const [, i, k] = f.split('.'); d.plays[+i][k] = num; } else { d[f] = num; if (f === 'cashOut') d.manual = v !== ''; }
-    updateLive();
+    updateLive(); saveDraft();
   } else if (el.dataset.q != null && S.picker) { S.picker.q = el.value; $('#mlist').innerHTML = mlistHTML(); }
   else if (el.dataset.sf && S.sd) { const v = digits(el.value); if (v !== el.value) el.value = v; S.sd[el.dataset.sf] = v; }
   else if (el.id === 'f-budget') { const v = digits(el.value); if (v !== el.value) el.value = v; S.budget = v === '' ? 0 : parseInt(v, 10); }
@@ -1383,14 +1428,18 @@ function start(data) {
   const saved = restore(), keep = (data && data.S) || {};
   S = Object.assign({ tab: 'home', period: 'all', cal: TODAY().slice(0, 7) }, keep, { basis: 'eval', mode: 'sample', budget: 80000, look: 'dark' },
     saved ? { mode: saved.mode === 'mine' && saved.mine ? 'mine' : 'sample', budget: Calc.n(saved.settings?.budget) || 80000, look: saved.settings?.look2 === 'light' ? 'light' : 'dark' } : {},
-    { sheet: null, draft: null, picker: null, confirm: null, sd: null, undo: null, back: null, tried: false, enter: false });
+    { sheet: null, draft: null, picker: null, confirm: null, sd: null, undo: null, back: null, pending: null, tried: false, enter: false });
   mine = saved ? saved.mine : null;
   if (S.mode === 'mine') db = mine; else { sample = sampleDB(); db = sample; }
   applyTheme(); fit(); tick(); render();
+  const de = readDraft(EKEY), dn = readDraft(DKEY), dr = de && de.open ? de : dn && dn.open ? dn : null;
+  if (!de) dropDraft(EKEY);
+  if (dr) { resumeDraft(dr); render(); toast('入力途中の内容を復元しました'); }
   if (store.broken) toast('保存データを読み込めなかったため、サンプルを表示しています');
 }
 addEventListener('resize', fit); setInterval(tick, 20000);
-addEventListener('pagehide', () => { if (S) persist(); });
+addEventListener('pagehide', () => { if (S) { persist(); saveDraft(); } });
+document.addEventListener('visibilitychange', () => { if (S && document.visibilityState === 'hidden') { persist(); saveDraft(); } });
 try { window.claude?.hot?.snapshot?.(() => ({ S: { tab: S.tab, period: S.period, cal: S.cal } })); } catch (_) {}
 if (window.claude?.hot?.ready) window.claude.hot.ready(start); else start(window.claude?.hot?.data ?? {});
 window.__demo = { get db() { return db; }, get S() { return S; }, get mine() { return mine; }, get store() { return store; }, KEY, backupText, parseBackup };
