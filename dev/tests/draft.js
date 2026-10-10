@@ -18,7 +18,7 @@ const root = path.join(__dirname, '..'); const DIST = path.join(root, 'dist'); c
   check('1 開いて閉じただけなら残さない', await state(), { sheet: null, cash: null, out: null, banner: false, stored: false, n: 0 });
 
   // 2. 打っている途中で再読み込み → 入力画面が開いた状態で、打った内容が戻る
-  await p.click('#app [data-tab="add"]'); await p.waitForTimeout(300); await pick('m1'); await p.fill('#f-p-0-cash', '5000'); await p.fill('#f-p-0-out', '300'); await p.click('[data-act="moreFields"]'); await p.fill('#f-memo', '朝イチ');
+  await p.click('#app [data-tab="add"]'); await p.waitForTimeout(300); await pick('m1'); await p.fill('#f-p-0-cash', '5000'); await p.fill('#f-p-0-out', '300'); await p.fill('#f-memo', '朝イチ');
   await p.waitForTimeout(500); await reload();
   check('2 再読み込み後に続きから', await state(), { sheet: '実戦を記録', cash: '5,000', out: '300', banner: false, stored: true, n: 0 });
   check('2 機種・メモ', await p.evaluate(() => [__demo.S.draft?.plays[0].machineId, document.querySelector('#f-memo')?.value]), ['m1', '朝イチ']);

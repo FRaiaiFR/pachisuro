@@ -465,8 +465,8 @@ function readDraft(key) {
     if (key === EKEY ? !db.sessions.some(x => x.id === o.draft.id) : o.draft.id) return null;
     const d = o.draft, have = new Set(db.machines.map(m => m.id));
     o.draft = { id: d.id || null, date: /^\d{4}-\d{2}-\d{2}$/.test(d.date) ? d.date : TODAY(), storeId: d.storeId || mainStore()?.id || '',
-      plays: d.plays.map(p => ({ ...blankPlay(), ...p, machineId: have.has(p.machineId) ? p.machineId : '' })),
-      deposit: Calc.n(d.deposit), cashOut: Calc.n(d.cashOut), manual: !!d.manual, expense: Calc.n(d.expense), memo: String(d.memo || ''), more: !!d.more, snap: d.snap || null };
+      plays: d.plays.map(p => { const q = { ...blankPlay(), ...p, machineId: have.has(p.machineId) ? p.machineId : '' }; if (!(Number.isFinite(q.t0) && q.t0 > 0 && q.t0 <= Date.now() + 60000)) delete q.t0; return q; }),
+      deposit: Calc.n(d.deposit), cashOut: Calc.n(d.cashOut), manual: !!d.manual, expense: Calc.n(d.expense), memo: String(d.memo || ''), snap: d.snap || null };
     return o;
   } catch (_) { return null; }
 }
@@ -480,9 +480,11 @@ function draftBar() {
   if (S.sheet?.type === 'entry' && S.draft && !S.draft.id) return '';   // いま開いている最中は出さない
   const o = readDraft(DKEY); if (!o) return '';
   const d = o.draft, dt = pdate(d.date), n = d.plays.filter(p => p.machineId || p.cash || p.savedIn || p.carryIn || p.out).length;
-  return `<div class="banner two"><button data-act="resumeDraft">入力途中の記録があります（${dt.getMonth() + 1}月${dt.getDate()}日${n ? `・${n}台` : ''}）。<b>続きから入力 ›</b></button><button data-act="askDropDraft" aria-label="入力途中の記録を破棄">破棄</button></div>`;
+  return `<div class="banner two"><button data-act="resumeDraft">入力途中の記録があります（${dt.getMonth() + 1}月${dt.getDate()}日${n ? `・${n}台` : ''}${d.plays.some(p => p.t0) ? '・タイマー計測中' : ''}）。<b>続きから入力 ›</b></button><button data-act="askDropDraft" aria-label="入力途中の記録を破棄">破棄</button></div>`;
 }
 /* ---------- sheets ---------- */
+// タイマー。開始した時刻（t0）だけを下書きに持つので、アプリを閉じても計測は続く。保存する記録には分だけを入れる
+const liveMin = p => Math.min(9999999, Calc.n(p.minutes) + (p.t0 ? Math.max(0, Math.round((Date.now() - p.t0) / 60000)) : 0));
 function draftRates() {
   const d = S.draft, st = storeOf(d.storeId);
   if (d.snap && d.snap.storeId === d.storeId) return { lendPer1000: d.snap.lendPer1000, exchX10: d.snap.exchX10 };
@@ -490,7 +492,7 @@ function draftRates() {
 }
 function draftSession() {
   const d = S.draft, r = draftRates();
-  const s = { id: d.id, date: d.date, storeId: d.storeId, ...r, plays: d.plays.map(p => ({ machineId: p.machineId, cash: Calc.n(p.cash), savedIn: Calc.n(p.savedIn), carryIn: Calc.n(p.carryIn), out: Calc.n(p.out), minutes: Calc.n(p.minutes) })), deposit: Calc.n(d.deposit), expense: Calc.n(d.expense), memo: d.memo.trim() };
+  const s = { id: d.id, date: d.date, storeId: d.storeId, ...r, plays: d.plays.map(p => ({ machineId: p.machineId, cash: Calc.n(p.cash), savedIn: Calc.n(p.savedIn), carryIn: Calc.n(p.carryIn), out: Calc.n(p.out), minutes: liveMin(p) })), deposit: Calc.n(d.deposit), expense: Calc.n(d.expense), memo: d.memo.trim() };
   const hand = s.plays.reduce((a, p) => a + p.out - p.carryIn, 0);
   s.cashOut = d.manual ? Calc.n(d.cashOut) : Calc.autoCashOut(hand, s.deposit, s.exchX10);
   return s;
@@ -505,9 +507,9 @@ function numField(label, unit, f, val) {
 function openEntry(o = {}) {
   let d;
   const src = o.id && db.sessions.find(x => x.id === o.id);
-  if (src && o.copy) d = { id: null, date: TODAY(), storeId: src.storeId, plays: src.plays.map(p => ({ ...blankPlay(), machineId: machineOf(p.machineId)?.gone ? '' : p.machineId })), deposit: 0, cashOut: 0, manual: false, expense: src.expense, memo: '', more: !!src.expense, snap: null };
-  else if (src) { const c = Calc.session(src); d = { id: src.id, date: src.date, storeId: src.storeId, plays: src.plays.map(p => ({ ...p })), deposit: src.deposit, cashOut: src.cashOut, manual: src.cashOut !== Calc.autoCashOut(c.hand, src.deposit, src.exchX10), expense: src.expense, memo: src.memo || '', more: !!(src.expense || src.memo || c.minutes), snap: { storeId: src.storeId, lendPer1000: src.lendPer1000, exchX10: src.exchX10 } }; }
-  else { d = { id: null, date: o.date || TODAY(), storeId: o.storeId || mainStore()?.id || '', plays: [blankPlay()], deposit: 0, cashOut: 0, manual: false, expense: 0, memo: '', more: false, snap: null }; }
+  if (src && o.copy) d = { id: null, date: TODAY(), storeId: src.storeId, plays: src.plays.map(p => ({ ...blankPlay(), machineId: machineOf(p.machineId)?.gone ? '' : p.machineId })), deposit: 0, cashOut: 0, manual: false, expense: src.expense, memo: '', snap: null };
+  else if (src) { const c = Calc.session(src); d = { id: src.id, date: src.date, storeId: src.storeId, plays: src.plays.map(p => ({ ...p })), deposit: src.deposit, cashOut: src.cashOut, manual: src.cashOut !== Calc.autoCashOut(c.hand, src.deposit, src.exchX10), expense: src.expense, memo: src.memo || '', snap: { storeId: src.storeId, lendPer1000: src.lendPer1000, exchX10: src.exchX10 } }; }
+  else { d = { id: null, date: o.date || TODAY(), storeId: o.storeId || mainStore()?.id || '', plays: [blankPlay()], deposit: 0, cashOut: 0, manual: false, expense: 0, memo: '', snap: null }; }
   S.draft = d; draft0 = JSON.stringify(d); S.tried = false; S.sheet = { type: 'entry' }; S.enter = true; renderSheet();
 }
 // 新しい記録を始める。入力途中の記録が残っているときは、消してよいか先に確かめる
@@ -550,8 +552,9 @@ const sheets = {
       </section></div>`;
   },
   entry() {
-    const d = S.draft, st = storeOf(d.storeId), r = draftRates(), bal = draftBalance();
-    const showSaved = p => d.more || bal > 0 || Calc.n(p.savedIn) > 0;
+    const d = S.draft, st = storeOf(d.storeId), r = draftRates(), bal = draftBalance(), per = r.lendPer1000;
+    // 貸出1回分（47枚）ずつ数えるボタン。サンドのボタンを押した回数どおりに押せば、枚数が入る
+    const stepper = (i, k) => `<button class="stp" id="${k}-dn-${i}" data-act="step" data-i="${i}" data-k="${k}" data-v="${-per}" aria-label="${per}枚減らす">−${per}</button><span class="cnt" id="${k}-n-${i}"></span><button class="stp" id="${k}-up-${i}" data-act="step" data-i="${i}" data-k="${k}" data-v="${per}" aria-label="${per}枚足す">+${per}</button>`;
     return `<header class="sh-head"><button data-act="closeSheet" aria-label="閉じる">${svg('close')}</button><h2>${d.id ? '実戦を編集' : '実戦を記録'}</h2><span></span></header>
     <div class="sh-body">
       <label class="frow" for="f-date"><span>日付</span><input id="f-date" type="date" data-f="date" value="${d.date}" max="${TODAY()}"></label>
@@ -561,12 +564,15 @@ const sheets = {
         <button class="mpick ${mc ? '' : 'none'}" data-act="pickMachine" data-i="${i}"><span>${mc ? esc(mc.name) : '機種を選ぶ'}${mc && (mc.maker || mc.type) ? `<small>${esc([mc.maker, mc.type].filter(Boolean).join('・'))}</small>` : ''}</span>${svg('right', 'chev')}</button>
         ${numField('現金投資', '円', `p.${i}.cash`, p.cash)}
         <div class="sub-chips">${[1000, 5000, 10000].map(v => `<button class="chip xs" data-act="cashAdd" data-i="${i}" data-v="${v}">+${nf(v)}</button>`).join('')}</div>
-        ${i > 0 ? numField('持ちメダル投入', '枚', `p.${i}.carryIn`, p.carryIn) + `<div class="sub-chips"><button class="chip xs" id="carry-${i}" data-act="carryAll" data-i="${i}"></button></div>` : ''}
-        ${showSaved(p) ? numField('貯メダル使用', '枚', `p.${i}.savedIn`, p.savedIn) + `<div class="sub-chips"><span class="hint" id="svl-${i}" style="margin-right:auto;align-self:center"></span><button class="chip xs" id="sv-${i}" data-act="savedMax" data-i="${i}"></button></div>` : ''}
+        ${numField('貯メダル使用', '枚', `p.${i}.savedIn`, p.savedIn)}
+        <div class="sub-chips"><span class="hint full" id="svl-${i}"></span>${stepper(i, 'savedIn')}<button class="chip xs" id="sv-${i}" data-act="savedMax" data-i="${i}"></button></div>
+        ${i > 0 ? numField('持ちメダル使用', '枚', `p.${i}.carryIn`, p.carryIn) + `<div class="sub-chips"><span class="hint full" id="cyl-${i}"></span>${stepper(i, 'carryIn')}<button class="chip xs" id="carry-${i}" data-act="carryAll" data-i="${i}"></button></div>` : ''}
         ${numField('終了時の枚数', '枚', `p.${i}.out`, p.out)}
-        ${d.more ? numField('遊技時間', '分', `p.${i}.minutes`, p.minutes) : ''}
+        ${numField('遊技時間', '分', `p.${i}.minutes`, p.minutes)}
+        <div class="sub-chips"><span class="hint" id="tml-${i}" style="margin-right:auto;align-self:center"></span><button class="stp tm" id="tm-${i}" data-act="timer" data-i="${i}"></button></div>
         <div class="pres" id="pres-${i}"></div></section>`; }).join('')}
       <button class="btn line" data-act="addPlay">＋ 台を追加</button>
+      ${d.plays.length === 1 ? '<p class="hint">出したメダルで別の台を打つときは、台を追加して「持ちメダル使用」に入れます。持ちメダルは、貯メダルの1日の上限に数えません。</p>' : ''}
       <section class="settle">
         <h3>精算</h3>
         <div class="srow"><span>手元のメダル</span><span id="st-hand"></span></div>
@@ -576,9 +582,8 @@ const sheets = {
         <div class="sub-chips"><span class="hint" id="st-autolab" style="margin-right:auto;align-self:center"></span><button class="chip xs" id="st-auto" data-act="cashAuto">自動計算に戻す</button></div>
         <div class="flow"><div class="flowbar" id="st-bar"></div><div class="legend" id="st-leg"></div></div>
       </section>
-      ${d.more ? `${`<section class="pcard">${numField('経費（交通費など）', '円', 'expense', d.expense)}</section>`}
-        <label class="field" for="f-memo"><span class="flabel">メモ（台を選んだ理由・やめた理由など）</span><textarea id="f-memo" rows="3" data-f="memo">${esc(d.memo)}</textarea></label>`
-        : `<button class="linkbtn" data-act="moreFields">＋ 遊技時間・経費・メモを入力する</button>`}
+      <section class="pcard">${numField('経費（交通費など）', '円', 'expense', d.expense)}</section>
+      <label class="field" for="f-memo"><span class="flabel">メモ（台を選んだ理由・やめた理由など）</span><textarea id="f-memo" rows="3" data-f="memo">${esc(d.memo)}</textarea></label>
       <div id="entry-msgs" style="display:flex;flex-direction:column;gap:8px"></div>
     </div>
     <footer class="sh-foot"><div class="res" id="entry-res"></div><button class="btn primary" data-act="save">保存する</button></footer>`;
@@ -697,16 +702,31 @@ const sheets = {
     return `<header class="sh-head"><button data-act="closeSheet" aria-label="閉じる">${svg('close')}</button><h2>計算ルール</h2><span></span></header>
     <div class="sh-body rules">
       <p class="note">ここにある計算と集計のルールは、すべて確認済みです。</p>
-      <div><h3>台ごと</h3><p class="f"><b>貸出枚数</b> ＝ 現金投資 ÷ 1,000 × 貸出枚数<br><b>差枚</b> ＝ 終了時の枚数 −（貸出枚数 ＋ 持ちメダル投入 ＋ 貯メダル使用）<br><b>台の収支</b> ＝（終了時の枚数 − 持ちメダル投入 − 貯メダル使用）× 1枚の交換価値 − 現金投資</p></div>
-      <div><h3>1日ごと</h3><p class="f"><b>手元のメダル</b> ＝ 終了時の枚数の合計 − 持ちメダル投入の合計<br><b>換金額</b>（自動） ＝（手元 − 預け入れ）÷ 交換枚数 × 1,000円 を100円単位で切り捨て。手入力で上書き可<br><b>現金収支</b> ＝ 換金額 − 現金投資<br><b>遊技収支（メダル評価込み）</b> ＝ 現金収支 ＋（預け入れ − 貯メダル使用）× 1枚の交換価値<br><b>最終収支</b> ＝ 収支 − 経費</p></div>
+      <div><h3>台ごと</h3><p class="f"><b>貸出枚数</b> ＝ 現金投資 ÷ 1,000 × 貸出枚数<br><b>差枚</b> ＝ 終了時の枚数 −（貸出枚数 ＋ 持ちメダル使用 ＋ 貯メダル使用）<br><b>台の収支</b> ＝（終了時の枚数 − 持ちメダル使用 − 貯メダル使用）× 1枚の交換価値 − 現金投資</p></div>
+      <div><h3>1日ごと</h3><p class="f"><b>手元のメダル</b> ＝ 終了時の枚数の合計 − 持ちメダル使用の合計<br><b>換金額</b>（自動） ＝（手元 − 預け入れ）÷ 交換枚数 × 1,000円 を100円単位で切り捨て。手入力で上書き可<br><b>現金収支</b> ＝ 換金額 − 現金投資<br><b>遊技収支（メダル評価込み）</b> ＝ 現金収支 ＋（預け入れ − 貯メダル使用）× 1枚の交換価値<br><b>最終収支</b> ＝ 収支 − 経費</p></div>
       <div><h3>二重計上を防ぐ仕組み</h3><p class="f">持ちメダルや貯メダルで打った分は現金投資に入れません。台の収支を足し上げると、端数・景品差を除いて日の遊技収支と一致します。差は「端数・景品差」として日別の詳細に表示します。</p></div>
       <div><h3>集計</h3><p class="f"><b>勝敗</b> は日単位。収支が＋なら勝ち、−なら負け、0なら引き分け。経費は含めません。<br><b>勝率</b> ＝ 勝ち日数 ÷ 実戦日数（引き分けも分母に入れる）<br><b>回収率</b> ＝（現金投資 ＋ 収支）÷ 現金投資<br><b>時給</b> ＝ 遊技時間を入力した実戦の収支合計 ÷ その遊技時間の合計<br><b>機種別</b> は台の収支で集計</p></div>
       <div><h3>交換条件</h3><p class="f"><b>貸出</b> 1,000円で47枚（1枚 約21.3円）<br><b>交換</b> 50枚で1,000円（1枚 20円）<br>現金で借りたメダルは、交換するときに約6%目減りします（10,000円＝470枚 → 交換すると9,400円）。条件は記録するたびに記録側にも保存するので、あとで条件を変えても過去の収支は変わりません。</p></div>
-      <div><h3>貯メダル</h3><p class="f"><b>残高</b> ＝ 初期残高 ＋ 預け入れの合計 − 使用の合計<br><b>1日の使用上限</b> 470枚。同じ日の記録を合算して判定し、超える入力は保存できません。<br><b>再プレイ手数料</b> なし（預けた枚数をそのまま使える）<br>有効期限は扱いません。</p></div>
+      <div><h3>貯メダル</h3><p class="f"><b>残高</b> ＝ 初期残高 ＋ 預け入れの合計 − 使用の合計<br><b>1日の使用上限</b> 470枚。同じ日の記録を合算して判定し、超える入力は保存できません。<br><b>持ちメダル</b>（その日に出したメダル）を次の台で使う分は、この上限に数えません。<br><b>再プレイ手数料</b> なし（預けた枚数をそのまま使える）<br>有効期限は扱いません。</p></div>
     </div>`;
   }
 };
 
+// タイマーの表示。動いている間は1秒ごとに呼ぶ
+function paintTimers() {
+  const d = S.draft; if (!d || S.sheet?.type !== 'entry') return;
+  const today = d.date === TODAY();
+  d.plays.forEach((p, i) => {
+    const inp = $(`#f-p-${i}-minutes`), b = $('#tm-' + i), l = $('#tml-' + i); if (!inp || !b || !l) return;
+    const run = !!p.t0, has = Calc.n(p.minutes) > 0;
+    inp.readOnly = run;                                  // 計測中は手で打てない（終了を押すと確定して、直せるようになる）
+    if (run || document.activeElement !== inp) { const v = fin(liveMin(p)); if (inp.value !== v) inp.value = v; }
+    b.hidden = !run && !today;                           // 過去の日付の記録には出さない
+    b.textContent = run ? '終了' : has ? '再開' : '開始'; b.classList.toggle('on', run); b.setAttribute('aria-pressed', String(run));
+    if (run) { const sec = Math.max(0, Math.floor((Date.now() - p.t0) / 1000)), t = new Date(p.t0); l.innerHTML = `${t.getHours()}:${pad(t.getMinutes())} 開始・計測中 <b class="tnum">${Math.floor(sec / 3600)}:${pad(Math.floor(sec / 60) % 60)}:${pad(sec % 60)}</b>`; }
+    else l.textContent = !today ? '' : has ? 'タイマー（続きの時間を足す）' : 'タイマー';
+  });
+}
 function updateLive() {
   const d = S.draft; if (!d || S.sheet?.type !== 'entry') return;
   const s = draftSession(), c = Calc.session(s), vo = vopts();
@@ -714,16 +734,23 @@ function updateLive() {
   d.plays.forEach((p, i) => {
     const el = $('#pres-' + i), cp = c.plays[i], sp = s.plays[i];
     if (el) el.innerHTML = (sp.cash + sp.carryIn + sp.savedIn + sp.out) ? `<span>投入 ${nf(cp.inMedals)}枚・差枚 ${Y(cp.diff, { unit: '枚' })}</span>${Y(cp.yen)}` : '<span>金額と枚数を入れると、差枚と収支を自動で計算します</span>';
+    const per = s.lendPer1000, cnt = v => (v > 0 && v % per === 0 ? `${v / per}回` : '');
     const cb = $('#carry-' + i);
-    if (cb) { cb.textContent = `前の台までの ${nf(avail)}枚を全部入れる`; cb.dataset.v = avail; cb.hidden = avail <= 0; }
+    if (cb) {      // 持ちメダル: その日に前の台までで出したメダル。貯メダルの1日上限には数えない
+      cb.textContent = `全部（${nf(avail)}枚）`; cb.dataset.v = avail; cb.hidden = avail <= 0 || sp.carryIn === avail;
+      $('#cyl-' + i).textContent = avail > 0 ? `前の台までの手元 ${nf(avail)}枚・1日の上限には数えません` : '前の台の「終了時の枚数」を入れると使えます';
+      $(`#carryIn-up-${i}`).disabled = sp.carryIn + per > avail; $(`#carryIn-dn-${i}`).disabled = sp.carryIn <= 0; $(`#carryIn-n-${i}`).textContent = cnt(sp.carryIn);
+    }
     avail += sp.out - sp.carryIn;
     const sb = $('#sv-' + i), sl = $('#svl-' + i);
     if (sb) {
       const others = c.savedIn - sp.savedIn, room = Math.max(0, Math.min(vo.balance - others, vo.dailyLimit > 0 ? vo.dailyLimit - vo.usedToday - others : Infinity));
       sb.textContent = `${nf(room)}枚を使う`; sb.dataset.v = room; sb.hidden = room <= 0 || sp.savedIn === room;
       sl.textContent = vo.dailyLimit > 0 ? `本日あと ${nf(Math.max(0, vo.dailyLimit - vo.usedToday - c.savedIn))}枚（1日 ${nf(vo.dailyLimit)}枚まで）` : '';
+      $(`#savedIn-up-${i}`).disabled = vo.dailyLimit > 0 && vo.usedToday + c.savedIn + per > vo.dailyLimit; $(`#savedIn-dn-${i}`).disabled = sp.savedIn <= 0; $(`#savedIn-n-${i}`).textContent = cnt(sp.savedIn);
     }
   });
+  paintTimers();
   $('#st-hand').innerHTML = N(Math.max(0, c.hand), '枚');
   const co = $('#f-cashOut'); if (co && !d.manual && document.activeElement !== co) co.value = fin(s.cashOut);
   $('#st-auto').hidden = !d.manual;
@@ -830,7 +857,13 @@ const A = {
   rules() { S.sheet = { type: 'rules' }; S.enter = true; renderSheet(); },
   addPlay() { S.draft.plays.push(blankPlay()); renderSheet(); const b = $('.sh-body'), card = b.querySelectorAll('.pcard')[S.draft.plays.length - 1]; if (card) { const k = b.offsetHeight / (b.getBoundingClientRect().height || 1); b.scrollTop += (card.getBoundingClientRect().top - b.getBoundingClientRect().top) * k - 12; } },
   delPlay(el) { S.draft.plays.splice(+el.dataset.i, 1); renderSheet(); },
-  moreFields() { S.draft.more = true; renderSheet(); },
+  step(el) { const i = +el.dataset.i, k = el.dataset.k, p = S.draft.plays[i]; p[k] = Math.max(0, Math.min(9999999, Calc.n(p[k]) + +el.dataset.v)); $(`#f-p-${i}-${k}`).value = fin(p[k]); updateLive(); },
+  timer(el) {      // 開始 ⇄ 終了。ほかの台で動いているタイマーは止めて分を確定する（同時に打てるのは1台だけ）
+    const d = S.draft, p = d.plays[+el.dataset.i], run = !!p.t0;
+    d.plays.forEach(q => { if (q.t0) { q.minutes = liveMin(q); delete q.t0; } });
+    if (!run) p.t0 = Date.now();
+    updateLive();
+  },
   cashAdd(el) { const p = S.draft.plays[+el.dataset.i]; p.cash = Math.min(9999999, Calc.n(p.cash) + +el.dataset.v); $(`#f-p-${el.dataset.i}-cash`).value = fin(p.cash); updateLive(); },
   savedMax(el) { const p = S.draft.plays[+el.dataset.i]; p.savedIn = +el.dataset.v; $(`#f-p-${el.dataset.i}-savedIn`).value = fin(p.savedIn); updateLive(); },
   carryAll(el) { const p = S.draft.plays[+el.dataset.i]; p.carryIn = +el.dataset.v; $(`#f-p-${el.dataset.i}-carryIn`).value = fin(p.carryIn); updateLive(); },
@@ -981,6 +1014,7 @@ function start(data) {
   scheduleSync(400);
 }
 addEventListener('resize', fit); setInterval(tick, 20000);
+setInterval(() => { if (S && S.draft && S.sheet?.type === 'entry' && S.draft.plays.some(p => p.t0)) paintTimers(); }, 1000);
 addEventListener('pagehide', () => { if (S) { persist(); saveDraft(); } });
 document.addEventListener('visibilitychange', () => { if (!S) return; if (document.visibilityState === 'hidden') { persist(); saveDraft(); } else if (Date.now() - sy.at > 15000) scheduleSync(300); });
 addEventListener('online', () => scheduleSync(300));

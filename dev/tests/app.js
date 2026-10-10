@@ -166,6 +166,61 @@ const H = require('./helper.js'), F = require('./fixture.js');
   const po2 = await old2.newPage(); po2.on('pageerror', e => errs.push(e.message)); await po2.goto(url); await po2.waitForTimeout(450);
   check('13 サンプルだけ見ていた端末は、空の状態から始まる', await po2.evaluate(() => [__demo.db.sessions.length, document.querySelector('#screen .empty b')?.textContent]), [0, 'まだ記録がありません']);
 
+  // 14. 入力画面: 貯メダル使用・遊技時間・経費・メモが最初から出ている。47枚ずつ数えるボタン、持ちメダル使用、タイマー
+  const q = await open(); const ev = f => q.evaluate(f); const val = id => q.evaluate(i => document.querySelector(i)?.value ?? null, id);
+  const txt = id => q.evaluate(i => document.querySelector(i)?.textContent ?? null, id); const dis = id => q.evaluate(i => document.querySelector(i)?.disabled ?? null, id);
+  await q.click('#app [data-tab="add"]'); await q.waitForTimeout(300);
+  check('14 最初から出ている欄', await ev(() => ['#f-p-0-cash', '#f-p-0-savedIn', '#f-p-0-out', '#f-p-0-minutes', '#f-expense', '#f-memo', '#tm-0', '#f-p-0-carryIn', '[data-act="moreFields"]'].map(i => { const e = document.querySelector(i); return !!e && e.offsetParent !== null; })), [true, true, true, true, true, true, true, false, false]);
+  check('14 欄の並び（現金 → 貯メダル → 終了時 → 遊技時間）', await ev(() => [...document.querySelectorAll('.pcard')[0].querySelectorAll('.nf > span:first-child')].map(e => e.textContent)), ['現金投資', '貯メダル使用', '終了時の枚数', '遊技時間']);
+  await q.click('[data-act="pickMachine"][data-i="0"]'); await q.click('[data-act="chooseMachine"][data-id="m1"]');
+  check('14 +47 を押す前', [await val('#f-p-0-savedIn'), await txt('#savedIn-n-0'), await dis('#savedIn-dn-0'), await dis('#savedIn-up-0'), await txt('#savedIn-up-0')], ['', '', true, false, '+47']);
+  for (let i = 0; i < 3; i++) await q.click('#savedIn-up-0');
+  check('14 +47 を3回', [await val('#f-p-0-savedIn'), await txt('#savedIn-n-0'), await txt('#svl-0'), await ev(() => __demo.S.draft.plays[0].savedIn)], ['141', '3回', '本日あと 329枚（1日 470枚まで）', 141]);
+  await q.click('#savedIn-dn-0'); check('14 −47 で1回分戻る', [await val('#f-p-0-savedIn'), await txt('#savedIn-n-0')], ['94', '2回']);
+  for (let i = 0; i < 8; i++) await q.click('#savedIn-up-0');
+  check('14 10回（470枚）で止まる', [await val('#f-p-0-savedIn'), await txt('#savedIn-n-0'), await dis('#savedIn-up-0'), await txt('#svl-0')], ['470', '10回', true, '本日あと 0枚（1日 470枚まで）']);
+  await q.fill('#f-p-0-savedIn', '100'); check('14 手で打った半端な枚数は回数を出さない', [await txt('#savedIn-n-0'), await dis('#savedIn-up-0')], ['', false]);
+  await q.fill('#f-p-0-savedIn', '470'); await q.fill('#f-p-0-cash', '10000'); await q.fill('#f-p-0-out', '800');
+
+  // 持ちメダル使用: 2台目から。貯メダル使用のすぐ下。その日に出したメダルなので、1日の上限には数えない
+  await q.click('[data-act="addPlay"]'); await q.click('[data-act="pickMachine"][data-i="1"]'); await q.click('[data-act="chooseMachine"][data-id="m2"]');
+  check('14 2台目の欄の並び', await ev(() => [...document.querySelectorAll('.pcard')[1].querySelectorAll('.nf > span:first-child')].map(e => e.textContent)), ['現金投資', '貯メダル使用', '持ちメダル使用', '終了時の枚数', '遊技時間']);
+  check('14 持ちメダルの案内', [await txt('#cyl-1'), await txt('#carry-1'), await dis('#carryIn-up-1'), await dis('#savedIn-up-1')], ['前の台までの手元 800枚・1日の上限には数えません', '全部（800枚）', false, true]);
+  await q.click('#carryIn-up-1'); await q.click('#carryIn-up-1'); check('14 持ちメダル +47 を2回', [await val('#f-p-1-carryIn'), await txt('#carryIn-n-1')], ['94', '2回']);
+  await q.click('#carry-1'); check('14 持ちメダル 全部', [await val('#f-p-1-carryIn'), await dis('#carryIn-up-1'), await ev(() => document.querySelector('#carry-1').hidden)], ['800', true, true]);
+  await q.fill('#f-p-1-out', '1200'); await q.waitForTimeout(80);
+  check('14 貯メダル470枚＋持ちメダル800枚でもエラーにならない', await ev(() => { const s = __demo.S.draft; return [document.querySelector('#st-hand').textContent, document.querySelectorAll('#entry-msgs .issue.error').length, s.plays[0].savedIn, s.plays[1].carryIn]; }), ['1,200枚', 0, 470, 800]);
+  await q.screenshot({ path: path.join(H.root, 'shots', 'entry-fields.png') });
+
+  // タイマー: 開始 → 計測中は分が自動で増える → 終了で確定。アプリを閉じても続く
+  await ev(() => { document.querySelector('.sh-body').scrollTop = 0; });
+  check('14 タイマー: 押す前', [await txt('#tm-0'), await txt('#tml-0'), await ev(() => document.querySelector('#f-p-0-minutes').readOnly)], ['開始', 'タイマー', false]);
+  await q.click('#tm-0'); await q.waitForTimeout(60);
+  check('14 タイマー: 開始', [await txt('#tm-0'), /^\d{1,2}:\d\d 開始・計測中 0:00:0\d$/.test(await txt('#tml-0')), await ev(() => document.querySelector('#f-p-0-minutes').readOnly), await ev(() => typeof __demo.S.draft.plays[0].t0)], ['終了', true, true, 'number']);
+  await ev(() => { __demo.S.draft.plays[0].t0 -= 83 * 60000; }); await q.waitForTimeout(1150);      // 83分たったことにする
+  check('14 タイマー: 計測中は1秒ごとに進む', [await val('#f-p-0-minutes'), /計測中 1:23:0\d$/.test(await txt('#tml-0'))], ['83', true]);
+  await q.screenshot({ path: path.join(H.root, 'shots', 'entry-timer.png') });
+  await q.reload(); await q.waitForTimeout(500);
+  check('14 タイマー: 読み込み直しても計測が続いている', [await txt('.sheet h2'), await txt('#tm-0'), await val('#f-p-0-minutes'), await val('#f-p-0-savedIn'), await val('#f-p-1-carryIn')], ['実戦を記録', '終了', '83', '470', '800']);
+  await q.click('#tm-1'); await q.waitForTimeout(60);
+  check('14 タイマー: 次の台で開始すると、前の台は止まって分が確定する', await ev(() => { const s = __demo.S.draft.plays; return [s[0].minutes, 't0' in s[0], document.querySelector('#tm-0').textContent, document.querySelector('#tml-0').textContent, document.querySelector('#f-p-0-minutes').readOnly, document.querySelector('#tm-1').textContent, typeof s[1].t0]; }), [83, false, '再開', 'タイマー（続きの時間を足す）', false, '終了', 'number']);
+  await ev(() => { __demo.S.draft.plays[1].t0 -= 40 * 60000; }); await q.click('#tm-1'); await q.waitForTimeout(60);
+  check('14 タイマー: 終了', [await val('#f-p-1-minutes'), await txt('#tm-1'), await ev(() => 't0' in __demo.S.draft.plays[1])], ['40', '再開', false]);
+  await q.click('#tm-1'); await ev(() => { __demo.S.draft.plays[1].t0 -= 10 * 60000; }); await q.waitForTimeout(1150);
+  check('14 タイマー: 再開すると続きに足す', await val('#f-p-1-minutes'), '50');
+  await q.fill('#f-p-0-minutes', '90'); check('14 止まっている台の分は手で直せる', await ev(() => __demo.S.draft.plays[0].minutes), 90);
+  await q.click('.sheet [data-act="closeSheet"]'); await q.waitForTimeout(250);
+  check('14 閉じてもタイマーは続き、ホームに出る', /タイマー計測中/.test(await txt('#screen [data-act="resumeDraft"]')), true);
+  await q.click('#screen [data-act="resumeDraft"]'); await q.waitForTimeout(300);
+  await q.click('[data-act="save"]'); await q.waitForTimeout(300);                                 // 計測中のまま保存 → その時点までの分で保存する
+  check('14 計測中のまま保存', await ev(() => { const s = __demo.db.sessions[0]; return [__demo.db.sessions.length, s.plays.map(p => p.minutes), s.plays.some(p => 't0' in p), s.plays[0].savedIn, s.plays[1].carryIn, Calc.session(s).minutes, localStorage.getItem('dx7-shushi.draft.v1')]; }), [1, [90, 50], false, 470, 800, 140, null]);
+  // 過去の日付の記録にはタイマーを出さない。分は手で打てる
+  await q.click('#app [data-tab="add"]'); await q.waitForTimeout(300); const y = await ev(() => { const d = new Date(Date.now() - 864e5), z = x => String(x).padStart(2, '0'); return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`; });
+  check('14 今日の日付ではタイマーが出る', await ev(() => document.querySelector('#tm-0').hidden), false);
+  await q.fill('#f-date', y); await q.waitForTimeout(80);
+  check('14 過去の日付ではタイマーを出さない', [await ev(() => document.querySelector('#tm-0').hidden), await txt('#tml-0'), await ev(() => document.querySelector('#f-p-0-minutes').readOnly)], [true, '', false]);
+  check('14 はみ出さない', await overflow(q), 0);
+
   check('ページのエラーなし', errs, []);
   const code = check.done(); await b.close(); srv.close(); process.exit(code);
 })().catch(e => { console.error('FAILED', e.message.split('\n').slice(0, 8).join('\n')); process.exit(1); });

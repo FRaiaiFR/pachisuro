@@ -4,6 +4,7 @@ const Calc = (() => {
   const n = v => (Number.isFinite(+v) ? Math.max(0, Math.round(+v)) : 0);
   const medalYen = (medals, exchX10) => medals * 1000 / exchX10;          // 交換レートでの円換算（未丸め）
   const lent = (cash, lendPer1000) => Math.round(n(cash) * lendPer1000 / 1000); // 現金で借りた枚数
+  const LONG_DAY = 840;                                                    // 1日の遊技時間がこれ（分）を超えたら警告
 
   // 1台分
   function play(p, s) {
@@ -53,7 +54,7 @@ const Calc = (() => {
     s.plays.forEach((p, i) => { if (!p.machineId) errors.push(`${i + 1}台目：機種を選んでください`); });
     let avail = 0;
     s.plays.forEach((p, i) => {
-      if (n(p.carryIn) > avail) errors.push(`${i + 1}台目：持ちメダル投入が、前の台までの手元枚数（${avail}枚）を超えています`);
+      if (n(p.carryIn) > avail) errors.push(`${i + 1}台目：持ちメダル使用が、前の台までの手元枚数（${avail}枚）を超えています`);
       avail += n(p.out) - n(p.carryIn);
     });
     const c = session(s);
@@ -149,7 +150,7 @@ const Calc = (() => {
     s.plays.forEach((p, i) => {
       const cash = n(p.cash), carry = n(p.carryIn), saved = n(p.savedIn), out = n(p.out), lentM = lent(cash, s.lendPer1000), no = i + 1;
       if (cash > 0 && cash % 1000 !== 0) add('warn', 'unit', `${no}台目：現金投資が1,000円単位ではありません（${cash.toLocaleString('ja-JP')}円）。桁の打ち間違いはありませんか`);
-      if (lentM > 0 && (lentM === carry || lentM === saved)) add('warn', 'double', `${no}台目：現金で借りた枚数と${lentM === carry ? '持ちメダル投入' : '貯メダル使用'}が同じ${lentM}枚です。同じ投資を2回入れていませんか`);
+      if (lentM > 0 && (lentM === carry || lentM === saved)) add('warn', 'double', `${no}台目：現金で借りた枚数と${lentM === carry ? '持ちメダル使用' : '貯メダル使用'}が同じ${lentM}枚です。同じ投資を2回入れていませんか`);
       const left = avail - carry;   // 前の台までのメダルのうち、この台に入れなかった分
       if (i > 0 && cash > 0 && left >= 50) add('warn', 'double', `${no}台目：前の台までのメダルが${left}枚残ったまま、現金で投資しています。持ちメダルで打った分を現金投資に入れていませんか`);
       if (cash + carry + saved === 0 && out > 0) add('warn', 'missing', `${no}台目：投入が0なのに終了時の枚数があります。投資の記録漏れはありませんか`);
@@ -160,6 +161,8 @@ const Calc = (() => {
     const calcOut = autoCashOut(c.hand, c.deposit, s.exchX10), cashGap = c.cashOut - calcOut;
     if (cashGap <= -1000) add('warn', 'cashout', `換金額が計算上の金額より${(-cashGap).toLocaleString('ja-JP')}円少なくなっています。景品に替えた分か、入力の間違いか確認してください`);
     if (opt.duplicate) add('warn', 'dup', '同じ日付で、内容がまったく同じ記録がもう1件あります');
+    // 遊技時間が1日で14時間を超える（営業時間より長い）→ タイマーの止め忘れか、打ち間違い
+    if (c.minutes > LONG_DAY) add('warn', 'time', `遊技時間の合計が${Math.floor(c.minutes / 60)}時間${c.minutes % 60 ? c.minutes % 60 + '分' : ''}になっています。タイマーの止め忘れか、打ち間違いはありませんか`);
     // 台別合計と1日の収支の照合。差 ＝ 換金額の差 − 100円に満たない端数、で必ず説明がつく
     const frac = Math.round(medalYen(c.exchMedals, s.exchX10)) - calcOut;
     const recon = { machineSum: c.machineSum, dayResult: c.evalResult, diff: c.evalResult - c.machineSum, frac, calcOut, cashOut: c.cashOut, cashGap, leftover: c.leftover,
@@ -195,7 +198,7 @@ const Calc = (() => {
       if (!p) { lines.push(`${no}を追加（${nameOf(q.machineId)}）`); continue; }
       if (!q) { lines.push(`${no}を削除（${nameOf(p.machineId)}）`); continue; }
       if (p.machineId !== q.machineId) lines.push(`${no} 機種：${nameOf(p.machineId)} → ${nameOf(q.machineId)}`);
-      for (const [k, label, unit] of [['cash', '現金投資', '円'], ['carryIn', '持ちメダル投入', '枚'], ['savedIn', '貯メダル使用', '枚'], ['out', '終了時の枚数', '枚'], ['minutes', '遊技時間', '分']])
+      for (const [k, label, unit] of [['cash', '現金投資', '円'], ['carryIn', '持ちメダル使用', '枚'], ['savedIn', '貯メダル使用', '枚'], ['out', '終了時の枚数', '枚'], ['minutes', '遊技時間', '分']])
         if (n(p[k]) !== n(q[k])) lines.push(`${no} ${label}：${y(p[k])}${unit} → ${y(q[k])}${unit}`);
     }
     for (const [k, label, unit] of [['deposit', '貯メダルに預ける', '枚'], ['cashOut', '換金額', '円'], ['expense', '経費', '円']])

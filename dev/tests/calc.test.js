@@ -98,7 +98,7 @@ t('集計: 台別合計 + 端数差 = 日合計（評価）', () => {
 t('入力チェック', () => {
   let v = C.validate(S(A, [{ machineId: 'a', cash: 1000, out: 100 }, { machineId: '', carryIn: 200, out: 0 }], { deposit: 0 }));
   assert.ok(v.errors.some(e => e.includes('機種')));
-  assert.ok(v.errors.some(e => e.includes('持ちメダル投入')));
+  assert.ok(v.errors.some(e => e.includes('持ちメダル使用')));
   v = C.validate(S(A, [{ machineId: 'a', cash: 1000, out: 100 }], { deposit: 200 }));
   assert.ok(v.errors.some(e => e.includes('預け入れ')));
   v = C.validate(S(A, [{ machineId: 'a', cash: 0, savedIn: 500, out: 0 }]), { balance: 100 });
@@ -199,5 +199,19 @@ t('変更履歴: 修正前後の違いを行で出す', () => {
   const d = C.diffSession(a, b, id => ({ m1: '北斗', m2: '喰種' }[id]));
   assert.deepStrictEqual(d, ['1台目 現金投資：10,000円 → 12,000円', '2台目を追加（喰種）', '換金額：16,000円 → 0円', 'メモを変更']);
   assert.deepStrictEqual(C.diffSession(a, a), []);
+});
+t('二重チェック: 遊技時間が長すぎるとき（タイマーの止め忘れ）', () => {
+  const one = min => C.audit(S(DX, [{ machineId: 'a', cash: 1000, out: 0, minutes: min }]), {});
+  assert.ok(!one(840).issues.some(x => x.code === 'time'));                                          // 14時間ちょうどまでは警告しない
+  assert.ok(one(841).issues.some(x => x.code === 'time' && x.level === 'warn' && x.msg.includes('14時間1分')));
+  const two = C.audit(S(DX, [{ machineId: 'a', cash: 1000, out: 0, minutes: 500 }, { machineId: 'b', cash: 1000, out: 0, minutes: 400 }]), {});
+  assert.ok(two.issues.some(x => x.code === 'time'));                                                // 台ごとではなく1日の合計で見る
+});
+t('持ちメダル使用は、貯メダルの1日上限に数えない', () => {
+  const s = S(DX, [{ machineId: 'a', cash: 10000, out: 2000 }, { machineId: 'b', carryIn: 2000, savedIn: 470, out: 0 }]);
+  const v = C.validate(s, { balance: 1000, dailyLimit: 470 });
+  assert.deepStrictEqual(v.errors, []);                                                              // 持ちメダル2,000枚＋貯メダル470枚でも保存できる
+  const over = C.validate(S(DX, [{ machineId: 'a', cash: 10000, out: 2000 }, { machineId: 'b', carryIn: 2000, savedIn: 471, out: 0 }]), { balance: 1000, dailyLimit: 470 });
+  assert.ok(over.errors.some(e => e.includes('1日の上限')));
 });
 console.log(`\n${pass} tests passed`);
