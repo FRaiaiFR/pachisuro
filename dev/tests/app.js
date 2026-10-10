@@ -61,11 +61,11 @@ const H = require('./helper.js'), F = require('./fixture.js');
   // 5. 貯メダル: 1日 470枚まで
   const lim = await p.evaluate(t => { const d = __demo.db, bal = Calc.balances(d.stores, d.sessions).s1, used = d.sessions.filter(s => s.date === t).reduce((a, s) => a + s.plays.reduce((x, y) => x + y.savedIn, 0), 0); return { bal, left: 470 - used }; }, today);
   await p.click('#app [data-tab="add"]'); await p.waitForTimeout(300); await p.click('[data-act="pickMachine"][data-i="0"]'); await p.click('[data-act="chooseMachine"][data-id="m1"]');
-  check('5 使える枚数の表示', await p.evaluate(() => [document.querySelector('#sv-0').textContent, document.querySelector('#svl-0').textContent]), [`${Math.min(lim.bal, lim.left)}枚を使う`, `本日あと ${lim.left}枚（1日 470枚まで）`]);
+  check('5 使える枚数の表示。上限までまとめて入れるボタンは無い', await p.evaluate(() => [document.querySelector('#svl-0').textContent, document.querySelectorAll('#sv-0, [data-act="savedMax"]').length, /枚を使う/.test(document.querySelector('.sh-body').innerText)]), [`本日あと ${lim.left}枚（1日 470枚まで）`, 0, false]);
   await p.fill('#f-p-0-savedIn', String(lim.left + 30)); await p.fill('#f-p-0-out', '100'); const n5 = await n(p); await p.click('[data-act="save"]'); await p.waitForTimeout(150);
   check('5 上限を超えると保存できない', [await n(p), await p.evaluate(() => [...document.querySelectorAll('#entry-msgs .issue.error')].some(e => /470/.test(e.textContent)))], [n5, true]);
-  await p.evaluate(() => { document.querySelector('.sh-body').scrollTop = 0; }); await p.click('#sv-0'); await p.waitForTimeout(120);
-  check('5 「◯枚を使う」を押すと上限ちょうどが入る', await p.evaluate(() => [document.querySelector('#f-p-0-savedIn').value, document.querySelector('#svl-0').textContent]), [String(Math.min(lim.bal, lim.left)), `本日あと ${lim.left - Math.min(lim.bal, lim.left)}枚（1日 470枚まで）`]);
+  await p.fill('#f-p-0-savedIn', String(Math.min(lim.bal, lim.left))); await p.waitForTimeout(120);
+  check('5 上限ちょうどなら入る', await p.evaluate(() => [document.querySelector('#f-p-0-savedIn').value, document.querySelector('#svl-0').textContent]), [String(Math.min(lim.bal, lim.left)), `本日あと ${lim.left - Math.min(lim.bal, lim.left)}枚（1日 470枚まで）`]);
   await p.click('[data-act="save"]'); await p.waitForTimeout(250); check('5 保存できる', await n(p), n5 + 1);
 
   // 6. 二重チェックと変更履歴
@@ -173,6 +173,7 @@ const H = require('./helper.js'), F = require('./fixture.js');
   check('14 最初から出ている欄', await ev(() => ['#f-p-0-cash', '#f-p-0-savedIn', '#f-p-0-out', '#f-p-0-minutes', '#f-expense', '#f-memo', '#tm-0', '#f-p-0-carryIn', '[data-act="moreFields"]'].map(i => { const e = document.querySelector(i); return !!e && e.offsetParent !== null; })), [true, true, true, true, true, true, true, false, false]);
   check('14 欄の並び（現金 → 貯メダル → 終了時 → 遊技時間）', await ev(() => [...document.querySelectorAll('.pcard')[0].querySelectorAll('.nf > span:first-child')].map(e => e.textContent)), ['現金投資', '貯メダル使用', '終了時の枚数', '遊技時間']);
   await q.click('[data-act="pickMachine"][data-i="0"]'); await q.click('[data-act="chooseMachine"][data-id="m1"]');
+  check('14 カウントボタンは、現金投資の「+1,000」と同じ形・同じ高さ', await ev(() => { const g = q => { const e = document.querySelector(q), r = e.getBoundingClientRect(), c = getComputedStyle(e); return [e.className, Math.round(r.height), c.fontSize, c.fontFamily]; }; const a = g('[data-act="cashAdd"][data-v="1000"]'); return [a[0], a[1], JSON.stringify(g('#savedIn-up-0')) === JSON.stringify(a), JSON.stringify(g('#savedIn-dn-0')) === JSON.stringify(a)]; }), ['chip xs', 30, true, true]);
   check('14 +47 を押す前', [await val('#f-p-0-savedIn'), await txt('#savedIn-n-0'), await dis('#savedIn-dn-0'), await dis('#savedIn-up-0'), await txt('#savedIn-up-0')], ['', '', true, false, '+47']);
   for (let i = 0; i < 3; i++) await q.click('#savedIn-up-0');
   check('14 +47 を3回', [await val('#f-p-0-savedIn'), await txt('#savedIn-n-0'), await txt('#svl-0'), await ev(() => __demo.S.draft.plays[0].savedIn)], ['141', '3回', '本日あと 329枚（1日 470枚まで）', 141]);
@@ -185,7 +186,7 @@ const H = require('./helper.js'), F = require('./fixture.js');
   // 持ちメダル使用: 2台目から。貯メダル使用のすぐ下。その日に出したメダルなので、1日の上限には数えない
   await q.click('[data-act="addPlay"]'); await q.click('[data-act="pickMachine"][data-i="1"]'); await q.click('[data-act="chooseMachine"][data-id="m2"]');
   check('14 2台目の欄の並び', await ev(() => [...document.querySelectorAll('.pcard')[1].querySelectorAll('.nf > span:first-child')].map(e => e.textContent)), ['現金投資', '貯メダル使用', '持ちメダル使用', '終了時の枚数', '遊技時間']);
-  check('14 持ちメダルの案内', [await txt('#cyl-1'), await txt('#carry-1'), await dis('#carryIn-up-1'), await dis('#savedIn-up-1')], ['前の台までの手元 800枚・1日の上限には数えません', '全部（800枚）', false, true]);
+  check('14 持ちメダルの案内', [await txt('#cyl-1'), await txt('#carry-1'), await dis('#carryIn-up-1'), await dis('#savedIn-up-1'), await ev(() => document.querySelector('#carryIn-up-1').className)], ['前の台までの手元 800枚・1日の上限には数えません', '全部（800枚）', false, true, 'chip xs']);
   await q.click('#carryIn-up-1'); await q.click('#carryIn-up-1'); check('14 持ちメダル +47 を2回', [await val('#f-p-1-carryIn'), await txt('#carryIn-n-1')], ['94', '2回']);
   await q.click('#carry-1'); check('14 持ちメダル 全部', [await val('#f-p-1-carryIn'), await dis('#carryIn-up-1'), await ev(() => document.querySelector('#carry-1').hidden)], ['800', true, true]);
   await q.fill('#f-p-1-out', '1200'); await q.waitForTimeout(80);

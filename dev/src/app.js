@@ -554,7 +554,7 @@ const sheets = {
   entry() {
     const d = S.draft, st = storeOf(d.storeId), r = draftRates(), bal = draftBalance(), per = r.lendPer1000;
     // 貸出1回分（47枚）ずつ数えるボタン。サンドのボタンを押した回数どおりに押せば、枚数が入る
-    const stepper = (i, k) => `<button class="stp" id="${k}-dn-${i}" data-act="step" data-i="${i}" data-k="${k}" data-v="${-per}" aria-label="${per}枚減らす">−${per}</button><span class="cnt" id="${k}-n-${i}"></span><button class="stp" id="${k}-up-${i}" data-act="step" data-i="${i}" data-k="${k}" data-v="${per}" aria-label="${per}枚足す">+${per}</button>`;
+    const stepper = (i, k) => `<button class="chip xs" id="${k}-dn-${i}" data-act="step" data-i="${i}" data-k="${k}" data-v="${-per}" aria-label="${per}枚減らす">−${per}</button><span class="cnt" id="${k}-n-${i}"></span><button class="chip xs" id="${k}-up-${i}" data-act="step" data-i="${i}" data-k="${k}" data-v="${per}" aria-label="${per}枚足す">+${per}</button>`;
     return `<header class="sh-head"><button data-act="closeSheet" aria-label="閉じる">${svg('close')}</button><h2>${d.id ? '実戦を編集' : '実戦を記録'}</h2><span></span></header>
     <div class="sh-body">
       <label class="frow" for="f-date"><span>日付</span><input id="f-date" type="date" data-f="date" value="${d.date}" max="${TODAY()}"></label>
@@ -565,7 +565,7 @@ const sheets = {
         ${numField('現金投資', '円', `p.${i}.cash`, p.cash)}
         <div class="sub-chips">${[1000, 5000, 10000].map(v => `<button class="chip xs" data-act="cashAdd" data-i="${i}" data-v="${v}">+${nf(v)}</button>`).join('')}</div>
         ${numField('貯メダル使用', '枚', `p.${i}.savedIn`, p.savedIn)}
-        <div class="sub-chips"><span class="hint full" id="svl-${i}"></span>${stepper(i, 'savedIn')}<button class="chip xs" id="sv-${i}" data-act="savedMax" data-i="${i}"></button></div>
+        <div class="sub-chips"><span class="hint full" id="svl-${i}"></span>${stepper(i, 'savedIn')}</div>
         ${i > 0 ? numField('持ちメダル使用', '枚', `p.${i}.carryIn`, p.carryIn) + `<div class="sub-chips"><span class="hint full" id="cyl-${i}"></span>${stepper(i, 'carryIn')}<button class="chip xs" id="carry-${i}" data-act="carryAll" data-i="${i}"></button></div>` : ''}
         ${numField('終了時の枚数', '枚', `p.${i}.out`, p.out)}
         ${numField('遊技時間', '分', `p.${i}.minutes`, p.minutes)}
@@ -742,10 +742,8 @@ function updateLive() {
       $(`#carryIn-up-${i}`).disabled = sp.carryIn + per > avail; $(`#carryIn-dn-${i}`).disabled = sp.carryIn <= 0; $(`#carryIn-n-${i}`).textContent = cnt(sp.carryIn);
     }
     avail += sp.out - sp.carryIn;
-    const sb = $('#sv-' + i), sl = $('#svl-' + i);
-    if (sb) {
-      const others = c.savedIn - sp.savedIn, room = Math.max(0, Math.min(vo.balance - others, vo.dailyLimit > 0 ? vo.dailyLimit - vo.usedToday - others : Infinity));
-      sb.textContent = `${nf(room)}枚を使う`; sb.dataset.v = room; sb.hidden = room <= 0 || sp.savedIn === room;
+    const sl = $('#svl-' + i);
+    if (sl) {
       sl.textContent = vo.dailyLimit > 0 ? `本日あと ${nf(Math.max(0, vo.dailyLimit - vo.usedToday - c.savedIn))}枚（1日 ${nf(vo.dailyLimit)}枚まで）` : '';
       $(`#savedIn-up-${i}`).disabled = vo.dailyLimit > 0 && vo.usedToday + c.savedIn + per > vo.dailyLimit; $(`#savedIn-dn-${i}`).disabled = sp.savedIn <= 0; $(`#savedIn-n-${i}`).textContent = cnt(sp.savedIn);
     }
@@ -865,7 +863,6 @@ const A = {
     updateLive();
   },
   cashAdd(el) { const p = S.draft.plays[+el.dataset.i]; p.cash = Math.min(9999999, Calc.n(p.cash) + +el.dataset.v); $(`#f-p-${el.dataset.i}-cash`).value = fin(p.cash); updateLive(); },
-  savedMax(el) { const p = S.draft.plays[+el.dataset.i]; p.savedIn = +el.dataset.v; $(`#f-p-${el.dataset.i}-savedIn`).value = fin(p.savedIn); updateLive(); },
   carryAll(el) { const p = S.draft.plays[+el.dataset.i]; p.carryIn = +el.dataset.v; $(`#f-p-${el.dataset.i}-carryIn`).value = fin(p.carryIn); updateLive(); },
   depSet(el) { const d = S.draft, hand = d.plays.reduce((a, p) => a + Calc.n(p.out) - Calc.n(p.carryIn), 0); d.deposit = el.dataset.v === 'all' ? Math.max(0, hand) : 0; $('#f-deposit').value = fin(d.deposit); updateLive(); },
   cashAuto() { S.draft.manual = false; updateLive(); },
